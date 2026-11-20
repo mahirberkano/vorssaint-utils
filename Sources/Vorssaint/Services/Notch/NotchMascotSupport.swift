@@ -85,6 +85,18 @@ enum NotchMascotMood: String, CaseIterable, Identifiable {
     case idle, happy, wink, love, sleepy, determined, surprised, searching, thinking, confused
     /// Wide awake, while Keep Awake holds the Mac up.
     case alert
+    /// Cross: Claude Code has waited on the person for minutes.
+    case angry
+
+    var id: String { rawValue }
+}
+
+/// Where the companion stands over the music strip while it stays there.
+enum NotchMascotMusicPlacement: String, CaseIterable, Identifiable {
+    /// Between the cover and the camera, the wing grown to make room.
+    case besideCover
+    /// Over the cover, which steps aside meanwhile; the island keeps its size.
+    case coverPlace
 
     var id: String { rawValue }
 }
@@ -139,6 +151,9 @@ enum NotchMascotReaction: String, CaseIterable {
     case ready
     /// Music started: smiling eyes and a bob to the beat.
     case groove
+    /// Claude Code is still waiting on the person: a cross face and two
+    /// short, low stamps.
+    case stomp
 
     /// About how long it plays, so the companion stays out for all of it
     /// when it comes out over an activity to play it.
@@ -156,6 +171,7 @@ enum NotchMascotReaction: String, CaseIterable {
         case .hush: return 1.0
         case .ready: return 1.0
         case .groove: return 1.6
+        case .stomp: return 1.0
         }
     }
 }
@@ -164,7 +180,7 @@ enum NotchMascotReaction: String, CaseIterable {
 /// island reacts to, each with the reaction it brings.
 enum NotchMascotMoment: String, CaseIterable, Identifiable {
     case visit, timerStarted, timeIsUp, music, agents, eventStarts, downloadFinished, downloadFailed, screenshot,
-         micMuted, keepAwake, charging, lowBattery, unlocked
+         micMuted, keepAwake, charging, lowBattery, unlocked, claudeWait
 
     var id: String { rawValue }
 
@@ -185,6 +201,7 @@ enum NotchMascotMoment: String, CaseIterable, Identifiable {
         case .charging: return .love
         case .lowBattery: return .yawn
         case .unlocked: return .wakeUp
+        case .claudeWait: return .stomp
         }
     }
 
@@ -210,6 +227,7 @@ enum NotchMascotMoment: String, CaseIterable, Identifiable {
         case .charging: return "bolt"
         case .lowBattery: return "battery.25percent"
         case .unlocked: return "lock.open"
+        case .claudeWait: return "hourglass"
         }
     }
 }
@@ -297,6 +315,7 @@ extension NotchMascotMood {
         case .thinking: return NotchMascotExpression(left: .squint, right: .open, gaze: CGPoint(x: 0.06, y: -0.06), tilt: -0.1)
         case .confused: return NotchMascotExpression(left: .open, right: .squint, gaze: CGPoint(x: -0.03, y: 0.01), tilt: 0.14)
         case .alert: return NotchMascotExpression(left: .wide, right: .wide)
+        case .angry: return NotchMascotExpression(left: .determined, right: .determined, gaze: CGPoint(x: 0, y: 0.02))
         }
     }
 }
@@ -695,14 +714,26 @@ struct NotchMascotVisit: Equatable {
         /// reaction right there and goes behind the camera, rather than
         /// leaving its place only to come back out for it.
         case linger(NotchMascotReaction)
+        /// Claude Code waits on the person: out once from behind the camera
+        /// where it would rest, then in place for as long as the wait goes
+        /// on, one loop after another, tapping its foot as `stage` says.
+        case wait(ClaudeWaitStage, entering: Bool)
 
         /// It ends out of sight, past the strip's end or behind the camera,
         /// so it can cross an activity's strip and leave nothing behind.
         var endsOutOfSight: Bool {
             switch self {
             case .pass, .cameo, .countdown, .retreat, .farewell, .linger: return true
-            case .lap, .home, .cross, .arrive: return false
+            case .lap, .home, .cross, .arrive, .wait: return false
             }
+        }
+
+        /// An activity's strip shows it: what ends out of sight crosses the
+        /// strip, and a wait stays in its own wing over it, loop after loop.
+        /// A stroll that ends where it rests has no place there.
+        var comesOverActivity: Bool {
+            if case .wait = self { return true }
+            return endsOutOfSight
         }
 
         /// It stands over the timer's mark only, and the reading stays in view.
@@ -720,7 +751,7 @@ struct NotchMascotVisit: Equatable {
         /// from end to end takes the whole strip.
         var takesOnlyItsWing: Bool {
             switch self {
-            case .countdown, .retreat, .cameo, .linger: return true
+            case .countdown, .retreat, .cameo, .linger, .wait: return true
             default: return false
             }
         }
@@ -847,8 +878,12 @@ enum NotchMascotMotion {
         case .retreat: return cameoExit
         case .farewell: return farewellDuration
         case .cross: return crossDuration
+        case .wait(_, let entering): return entering ? cameoArrival + waitLoop : waitLoop
         }
     }
+
+    /// One loop of waiting; the island starts the next as it ends.
+    static let waitLoop: TimeInterval = 3.0
 
     /// How long before a countdown runs out the companion comes to watch it.
     static let countdownLead: TimeInterval = 5
@@ -891,6 +926,7 @@ enum NotchMascotMotion {
             case .farewell: return farewell(on: track)
             case .cross: return cross(on: track)
             case .arrive: return arrive(on: track)
+            case .wait(let stage, let entering): return wait(on: track, stage: stage, entering: entering)
             case .countdown, .retreat: return NotchMascotPath()
             }
         }
@@ -1029,6 +1065,36 @@ enum NotchMascotMotion {
             return time >= cameoArrival && time <= total + countdownLinger ? 0.07 : gaze
         }
         return path
+    }
+
+    /// Waiting with Claude Code: where it rests, a loop of foot taps, more
+    /// as it grows cross, ending where it started so loops follow on. The
+    /// first loop brings it out from behind the camera, or in at a
+    /// capsule's near end.
+    static func wait(on track: NotchMascotTrack, stage: ClaudeWaitStage, entering: Bool) -> NotchMascotPath {
+        let tap = track.hop(0.1)
+        var steps: [Step] = []
+        var start = track.rest
+        var time: TimeInterval = 0
+        if entering {
+            start = track.hidden.map { track.behindCamera($0, margin: 1) } ?? -track.size
+            steps += [.stay(0.06), .hop(to: track.rest, cameoArrival - 0.06, height: track.hop(0.2))]
+            time = cameoArrival
+        }
+        let taps: [TimeInterval]
+        switch stage {
+        case .attention: taps = []
+        case .impatient: taps = [1.2]
+        case .angry: taps = [0.3, 0.85, 1.4]
+        }
+        var loop: TimeInterval = 0
+        for at in taps {
+            steps.append(.stay(at - loop))
+            steps.append(.hop(to: track.rest, 0.3, height: tap))
+            loop = at + 0.3
+        }
+        steps.append(.stay(waitLoop - loop))
+        return sample(steps, start: start, track: track, duration: time + waitLoop)
     }
 
     /// Switched on: as it comes back from the Command Bar's drop beside a
@@ -1213,6 +1279,35 @@ enum NotchMascotSupport {
     }
     static let greetings: [NotchMascotMood] = [.happy, .wink, .love]
 
+    /// How often it stamps where it rests while Claude Code waits: not at
+    /// first, then every few seconds, more often once it is cross.
+    static func stompInterval(_ stage: ClaudeWaitStage) -> TimeInterval? {
+        switch stage {
+        case .attention: return nil
+        case .impatient: return 6
+        case .angry: return 2.5
+        }
+    }
+
+    /// The room the music strip's wing grows by to keep the companion
+    /// beside the cover: the companion and a little air on each side.
+    static func musicSlotWidth(stripHeight: CGFloat) -> CGFloat {
+        size(stripHeight: stripHeight, floats: false) + 14
+    }
+
+    static func musicPlacement(in defaults: UserDefaults = .standard) -> NotchMascotMusicPlacement {
+        NotchMascotMusicPlacement(rawValue: defaults.string(forKey: DefaultsKey.notchMascotMusicPlacement) ?? "") ?? .besideCover
+    }
+
+    /// Its face while Claude Code waits this long on the person.
+    static func mood(for stage: ClaudeWaitStage) -> NotchMascotMood {
+        switch stage {
+        case .attention: return .alert
+        case .impatient: return .determined
+        case .angry: return .angry
+        }
+    }
+
     /// A blink comes this long after the previous one, twice as long in Low
     /// Power Mode, where it blinks less.
     static func blinkInterval(lowPower: Bool) -> ClosedRange<TimeInterval> {
@@ -1243,6 +1338,14 @@ enum NotchMascotSupport {
     /// countdown run out.
     static func reacts(in defaults: UserDefaults = .standard) -> Bool {
         isEnabled(in: defaults) && defaults.bool(forKey: DefaultsKey.notchMascotReactions)
+    }
+
+    /// Whether it comes out and waits while Claude Code waits on the person.
+    /// It reads Claude's sessions through AI Agents, so it needs that section
+    /// on with Claude in it; otherwise the hook is taken out of Claude Code.
+    static func waitsForClaude(in defaults: UserDefaults = .standard) -> Bool {
+        isEnabled(in: defaults) && defaults.bool(forKey: DefaultsKey.notchMascotClaudeWait)
+            && NotchAgentSupport.sectionShows(in: defaults) && NotchAgentSupport.providers(in: defaults).contains(.claude)
     }
 
     /// Whether it hides in the island once nothing has happened for a

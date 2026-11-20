@@ -2445,12 +2445,17 @@ struct NotchGeometry: Equatable {
     /// Insufficient menu space hides the wings instead of growing below the camera.
     /// Beside a physical camera each wing is just wide enough for the cover or
     /// the bars, kept as far from the strip's end as from its top and bottom.
-    var compactMusicGeometry: NotchGeometry {
+    var compactMusicGeometry: NotchGeometry { compactMusicGeometry(companionRoom: 0) }
+    /// `companionRoom` widens both wings, so the companion can stand beside
+    /// the cover, between it and the camera, while the cover and the bars
+    /// keep their places at the strip's ends.
+    func compactMusicGeometry(companionRoom: CGFloat) -> NotchGeometry {
         var compact = self
         compact.allowsActivityFooter = false
         let room = compactSideRoom ?? 0
-        let wing = isNotched ? compact.compactMusicContentWing : 44
-        compact.compactSideRoom = room.isFinite && room >= wing ? min(isNotched ? wing : 56, room) : 0
+        let wing = (isNotched ? compact.compactMusicContentWing : 44) + max(0, companionRoom)
+        let widest = isNotched ? wing : 56 + max(0, companionRoom)
+        compact.compactSideRoom = room.isFinite && room >= wing ? min(widest, room) : 0
         compact.minimumWing = wing
         return compact
     }
