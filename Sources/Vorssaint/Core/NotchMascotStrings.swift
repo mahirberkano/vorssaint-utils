@@ -66,6 +66,16 @@ struct NotchMascotStrings {
     let livesInIsland: String
     /// More words a search finds its page by.
     let keywords: String
+    /// Coming out while Claude Code waits on the person.
+    let claudeWait: String
+    let claudeWaitHint: String
+    let claudeWaitNeedsAgents: String
+    let claudeWaitFailed: String
+    let claudeWaitMoment: String
+    /// Where it stands over the music strip.
+    let musicPlacement: String
+    let besideCover: String
+    let coverPlace: String
 
     func style(_ style: NotchMascotStyle) -> String {
         style == .robot ? robot : minimal
@@ -96,6 +106,10 @@ struct NotchMascotStrings {
         style == .island ? openIsland : droplet
     }
 
+    func musicPlacement(_ placement: NotchMascotMusicPlacement) -> String {
+        placement == .coverPlace ? coverPlace : besideCover
+    }
+
     func side(_ side: NotchMascotSide) -> String {
         side == .right ? right : left
     }
@@ -118,13 +132,14 @@ struct NotchMascotStrings {
         case .charging: return FeatureStrings.notch(language).charging
         case .lowBattery: return FeatureStrings.notch(language).lowBattery
         case .unlocked: return unlocked
+        case .claudeWait: return claudeWaitMoment
         }
     }
 
     /// What a search finds its page by, besides its name.
     var searchKeywords: [String] {
         [hint, visits, reactions, hidesWhenIdle, appearance, style, robot, color, behavior,
-         commandBar, keywords]
+         commandBar, claudeWait, musicPlacement, keywords]
     }
 
     func frequency(_ frequency: NotchMascotVisitFrequency) -> String {
@@ -165,7 +180,15 @@ extension FeatureStrings {
             visitMoment: "A visit", timerStarted: "Timer started", downloadFailed: "Download failed", unlocked: "Mac unlocked",
             petTip: "Rest the pointer on it to pet it. Left alone, it dozes off until you come back.",
             livesInIsland: "The companion lives in the Dynamic Island.",
-            keywords: "mascot pet buddy character")
+            keywords: "mascot pet buddy character",
+            claudeWait: "Nudge me when Claude Code waits",
+            claudeWaitHint: "When Claude Code needs your approval or an answer, the companion comes out and stays until you respond, getting crosser the longer it waits. Adds a small hook to Claude Code’s settings.",
+            claudeWaitNeedsAgents: "Needs AI Agents with Claude turned on.",
+            claudeWaitFailed: "Claude Code’s settings couldn’t be read, so nothing was changed.",
+            claudeWaitMoment: "Claude is waiting",
+            musicPlacement: "With music playing",
+            besideCover: "Beside the cover",
+            coverPlace: "In the cover’s place")
         case .ptBR: return NotchMascotStrings(
             title: "Companheiro",
             hint: "Um amiguinho que mora no Dynamic Island. Descansa ali quando não há mais nada aparecendo e sai por cima de músicas e atividades para dar oi e reagir ao que acontece.",
@@ -192,7 +215,15 @@ extension FeatureStrings {
             visitMoment: "Uma visita", timerStarted: "Temporizador iniciado", downloadFailed: "Falha no download", unlocked: "Mac desbloqueado",
             petTip: "Deixe o ponteiro parado sobre ele para fazer carinho. Sozinho, ele cochila até você voltar.",
             livesInIsland: "O companheiro mora no Dynamic Island.",
-            keywords: "mascote bichinho amigo personagem")
+            keywords: "mascote bichinho amigo personagem",
+            claudeWait: "Avisar quando o Claude Code esperar",
+            claudeWaitHint: "Quando o Claude Code precisa da sua aprovação ou de uma resposta, o companheiro aparece e fica até você responder, ficando mais bravo quanto mais espera. Adiciona um pequeno hook às configurações do Claude Code.",
+            claudeWaitNeedsAgents: "Requer Agentes de IA com o Claude ativado.",
+            claudeWaitFailed: "Não foi possível ler as configurações do Claude Code, então nada foi alterado.",
+            claudeWaitMoment: "Claude está esperando",
+            musicPlacement: "Com música tocando",
+            besideCover: "Ao lado da capa",
+            coverPlace: "No lugar da capa")
         case .es: return NotchMascotStrings(
             title: "Compañero",
             hint: "Un amiguito que vive en el Dynamic Island. Descansa allí cuando no se muestra nada más y sale sobre la música y las actividades para saludar y reaccionar a lo que pasa.",
@@ -219,7 +250,15 @@ extension FeatureStrings {
             visitMoment: "Una visita", timerStarted: "Temporizador iniciado", downloadFailed: "Error en la descarga", unlocked: "Mac desbloqueado",
             petTip: "Deja el puntero quieto sobre él para acariciarlo. Si lo dejas solo, se duerme hasta que vuelvas.",
             livesInIsland: "El compañero vive en el Dynamic Island.",
-            keywords: "mascota amiguito personaje")
+            keywords: "mascota amiguito personaje",
+            claudeWait: "Avisarme cuando Claude Code espere",
+            claudeWaitHint: "Cuando Claude Code necesita tu aprobación o una respuesta, el compañero sale y se queda hasta que respondas, enfadándose más cuanto más espera. Añade un pequeño hook a los ajustes de Claude Code.",
+            claudeWaitNeedsAgents: "Requiere Agentes de IA con Claude activado.",
+            claudeWaitFailed: "No se pudieron leer los ajustes de Claude Code, así que no se cambió nada.",
+            claudeWaitMoment: "Claude está esperando",
+            musicPlacement: "Con música sonando",
+            besideCover: "Junto a la portada",
+            coverPlace: "En lugar de la portada")
         case .sk: return NotchMascotStrings(
             title: "Spoločník",
             hint: "Malý kamarát, ktorý býva v Dynamic Island. Odpočíva tam, keď sa nič iné nezobrazuje, a ponad hudbu a aktivity sa ukáže, aby pozdravil a zareagoval na to, čo sa deje.",
@@ -246,7 +285,15 @@ extension FeatureStrings {
             visitMoment: "Návšteva", timerStarted: "Časovač spustený", downloadFailed: "Sťahovanie zlyhalo", unlocked: "Mac odomknutý",
             petTip: "Nechajte na ňom chvíľu ukazovateľ a pohladkáte ho. Keď je sám, zdriemne si, kým sa nevrátite.",
             livesInIsland: "Spoločník býva v Dynamic Island.",
-            keywords: "maskot zvieratko kamarát postavička")
+            keywords: "maskot zvieratko kamarát postavička",
+            claudeWait: "Upozorniť, keď Claude Code čaká",
+            claudeWaitHint: "Keď Claude Code potrebuje tvoj súhlas alebo odpoveď, spoločník vyjde a zostane, kým neodpovieš, a čím dlhšie čaká, tým je nahnevanejší. Pridá malý hook do nastavení Claude Code.",
+            claudeWaitNeedsAgents: "Vyžaduje AI agentov so zapnutým Claude.",
+            claudeWaitFailed: "Nastavenia Claude Code sa nepodarilo prečítať, preto sa nič nezmenilo.",
+            claudeWaitMoment: "Claude čaká",
+            musicPlacement: "Keď hrá hudba",
+            besideCover: "Vedľa obalu",
+            coverPlace: "Namiesto obalu")
         case .de: return NotchMascotStrings(
             title: "Begleiter",
             hint: "Ein kleiner Freund, der im Dynamic Island wohnt. Er ruht dort, wenn sonst nichts angezeigt wird, und kommt über Musik und Aktivitäten hervor, um Hallo zu sagen und auf das Geschehen zu reagieren.",
@@ -273,7 +320,15 @@ extension FeatureStrings {
             visitMoment: "Ein Besuch", timerStarted: "Timer gestartet", downloadFailed: "Download fehlgeschlagen", unlocked: "Mac entsperrt",
             petTip: "Lass den Zeiger kurz auf ihm ruhen, um ihn zu streicheln. Allein döst er ein, bis du zurückkommst.",
             livesInIsland: "Der Begleiter wohnt im Dynamic Island.",
-            keywords: "Maskottchen Haustier Kumpel Figur")
+            keywords: "Maskottchen Haustier Kumpel Figur",
+            claudeWait: "Melden, wenn Claude Code wartet",
+            claudeWaitHint: "Wenn Claude Code deine Freigabe oder eine Antwort braucht, kommt der Begleiter heraus und bleibt, bis du reagierst, und wird umso ungeduldiger, je länger er wartet. Fügt den Einstellungen von Claude Code einen kleinen Hook hinzu.",
+            claudeWaitNeedsAgents: "Erfordert KI-Agenten mit eingeschaltetem Claude.",
+            claudeWaitFailed: "Die Einstellungen von Claude Code konnten nicht gelesen werden, daher wurde nichts geändert.",
+            claudeWaitMoment: "Claude wartet",
+            musicPlacement: "Bei laufender Musik",
+            besideCover: "Neben dem Cover",
+            coverPlace: "Anstelle des Covers")
         case .fr: return NotchMascotStrings(
             title: "Compagnon",
             hint: "Un petit ami qui vit dans le Dynamic Island. Il s’y repose quand rien d’autre n’est affiché, et sort par-dessus la musique et les activités pour dire bonjour et réagir à ce qui se passe.",
@@ -300,7 +355,15 @@ extension FeatureStrings {
             visitMoment: "Une visite", timerStarted: "Minuteur lancé", downloadFailed: "Échec du téléchargement", unlocked: "Mac déverrouillé",
             petTip: "Laissez le pointeur posé sur lui pour le caresser. Seul, il s’assoupit jusqu’à votre retour.",
             livesInIsland: "Le compagnon vit dans le Dynamic Island.",
-            keywords: "mascotte animal copain personnage")
+            keywords: "mascotte animal copain personnage",
+            claudeWait: "Me prévenir quand Claude Code attend",
+            claudeWaitHint: "Quand Claude Code a besoin de ton accord ou d’une réponse, le compagnon sort et reste jusqu’à ce que tu répondes, de plus en plus fâché à mesure qu’il attend. Ajoute un petit hook aux réglages de Claude Code.",
+            claudeWaitNeedsAgents: "Nécessite les Agents IA avec Claude activé.",
+            claudeWaitFailed: "Impossible de lire les réglages de Claude Code, rien n’a donc été modifié.",
+            claudeWaitMoment: "Claude attend",
+            musicPlacement: "Pendant la musique",
+            besideCover: "À côté de la pochette",
+            coverPlace: "À la place de la pochette")
         case .it: return NotchMascotStrings(
             title: "Compagno",
             hint: "Un piccolo amico che vive nel Dynamic Island. Riposa lì quando non viene mostrato nient’altro ed esce sopra musica e attività per salutare e reagire a ciò che succede.",
@@ -327,7 +390,15 @@ extension FeatureStrings {
             visitMoment: "Una visita", timerStarted: "Timer avviato", downloadFailed: "Download non riuscito", unlocked: "Mac sbloccato",
             petTip: "Lascia il puntatore fermo su di lui per accarezzarlo. Da solo, si appisola finché non torni.",
             livesInIsland: "Il compagno vive nel Dynamic Island.",
-            keywords: "mascotte animaletto amico personaggio")
+            keywords: "mascotte animaletto amico personaggio",
+            claudeWait: "Avvisami quando Claude Code aspetta",
+            claudeWaitHint: "Quando Claude Code ha bisogno della tua approvazione o di una risposta, il compagno esce e resta finché non rispondi, arrabbiandosi sempre di più quanto più aspetta. Aggiunge un piccolo hook alle impostazioni di Claude Code.",
+            claudeWaitNeedsAgents: "Richiede gli Agenti IA con Claude attivo.",
+            claudeWaitFailed: "Impossibile leggere le impostazioni di Claude Code, quindi non è stato modificato nulla.",
+            claudeWaitMoment: "Claude sta aspettando",
+            musicPlacement: "Con la musica",
+            besideCover: "Accanto alla copertina",
+            coverPlace: "Al posto della copertina")
         case .ru: return NotchMascotStrings(
             title: "Компаньон",
             hint: "Маленький друг, который живёт в Dynamic Island. Он отдыхает там, когда больше ничего не показано, и выходит поверх музыки и активностей, чтобы поздороваться и отреагировать на происходящее.",
@@ -354,7 +425,15 @@ extension FeatureStrings {
             visitMoment: "Визит", timerStarted: "Таймер запущен", downloadFailed: "Загрузка не удалась", unlocked: "Mac разблокирован",
             petTip: "Задержите на нём указатель, чтобы погладить. Оставшись один, он дремлет, пока вы не вернётесь.",
             livesInIsland: "Компаньон живёт в Dynamic Island.",
-            keywords: "маскот питомец приятель персонаж")
+            keywords: "маскот питомец приятель персонаж",
+            claudeWait: "Напоминать, когда Claude Code ждёт",
+            claudeWaitHint: "Когда Claude Code нужно ваше одобрение или ответ, компаньон выходит и остаётся, пока вы не ответите, сердясь тем сильнее, чем дольше ждёт. Добавляет небольшой хук в настройки Claude Code.",
+            claudeWaitNeedsAgents: "Нужны ИИ-агенты с включённым Claude.",
+            claudeWaitFailed: "Не удалось прочитать настройки Claude Code, поэтому ничего не изменено.",
+            claudeWaitMoment: "Claude ждёт",
+            musicPlacement: "Когда играет музыка",
+            besideCover: "Рядом с обложкой",
+            coverPlace: "Вместо обложки")
         case .tr: return NotchMascotStrings(
             title: "Arkadaş",
             hint: "Dynamic Island’da yaşayan küçük bir dost. Başka bir şey görünmediğinde orada dinlenir, merhaba demek ve olanlara tepki vermek için müziğin ve etkinliklerin üzerine çıkar.",
@@ -381,7 +460,15 @@ extension FeatureStrings {
             visitMoment: "Bir ziyaret", timerStarted: "Zamanlayıcı başladı", downloadFailed: "İndirme başarısız", unlocked: "Mac’in kilidi açıldı",
             petTip: "Sevmek için imleci bir an üzerinde tutun. Yalnız kalınca siz dönene kadar uyuklar.",
             livesInIsland: "Arkadaş Dynamic Island’da yaşar.",
-            keywords: "maskot evcil dost karakter")
+            keywords: "maskot evcil dost karakter",
+            claudeWait: "Claude Code beklerken uyar",
+            claudeWaitHint: "Claude Code onayını ya da cevabını beklediğinde arkadaş çıkar, sen yanıt verene kadar bekler ve süre uzadıkça sinirlenir. Claude Code ayarlarına küçük bir hook ekler.",
+            claudeWaitNeedsAgents: "YZ Ajanları’nda Claude açık olmalı.",
+            claudeWaitFailed: "Claude Code ayarları okunamadı, hiçbir şey değiştirilmedi.",
+            claudeWaitMoment: "Claude bekliyor",
+            musicPlacement: "Müzik çalarken",
+            besideCover: "Kapağın yanında",
+            coverPlace: "Kapağın yerinde")
         case .ja: return NotchMascotStrings(
             title: "コンパニオン",
             hint: "Dynamic Island に住む小さな友だちです。ほかに何も表示されていないときはそこで休み、音楽やアクティビティの上にも出てきて、あいさつしたり出来事に反応したりします。",
@@ -408,7 +495,15 @@ extension FeatureStrings {
             visitMoment: "訪問", timerStarted: "タイマー開始", downloadFailed: "ダウンロード失敗", unlocked: "Mac のロック解除",
             petTip: "ポインタをしばらく乗せるとなでられます。ひとりにすると、戻ってくるまでうたた寝します。",
             livesInIsland: "コンパニオンは Dynamic Island に住んでいます。",
-            keywords: "マスコット ペット 相棒 キャラクター")
+            keywords: "マスコット ペット 相棒 キャラクター",
+            claudeWait: "Claude Code が待っているときに知らせる",
+            claudeWaitHint: "Claude Code があなたの承認や回答を待っているとき、コンパニオンが出てきて、応答するまでそこにいます。待つほど不機嫌になります。Claude Code の設定に小さなフックを追加します。",
+            claudeWaitNeedsAgents: "AIエージェントで Claude をオンにする必要があります。",
+            claudeWaitFailed: "Claude Code の設定を読み込めなかったため、何も変更していません。",
+            claudeWaitMoment: "Claude が待っています",
+            musicPlacement: "音楽の再生中",
+            besideCover: "ジャケットの横",
+            coverPlace: "ジャケットの位置")
         case .ko: return NotchMascotStrings(
             title: "컴패니언",
             hint: "Dynamic Island에 사는 작은 친구입니다. 다른 것이 표시되지 않을 때는 그곳에서 쉬고, 음악과 활동 위로도 나와 인사하고 일어난 일에 반응합니다.",
@@ -435,7 +530,15 @@ extension FeatureStrings {
             visitMoment: "방문", timerStarted: "타이머 시작", downloadFailed: "다운로드 실패", unlocked: "Mac 잠금 해제",
             petTip: "포인터를 잠시 올려 두면 쓰다듬을 수 있습니다. 혼자 두면 돌아올 때까지 꾸벅꾸벅 좁니다.",
             livesInIsland: "컴패니언은 Dynamic Island에 삽니다.",
-            keywords: "마스코트 펫 친구 캐릭터")
+            keywords: "마스코트 펫 친구 캐릭터",
+            claudeWait: "Claude Code가 기다릴 때 알려 주기",
+            claudeWaitHint: "Claude Code가 승인이나 답변을 기다리면 컴패니언이 나와서 응답할 때까지 머물고, 오래 기다릴수록 점점 화를 냅니다. Claude Code 설정에 작은 훅을 추가합니다.",
+            claudeWaitNeedsAgents: "AI 에이전트에서 Claude를 켜야 합니다.",
+            claudeWaitFailed: "Claude Code 설정을 읽을 수 없어 아무것도 변경하지 않았습니다.",
+            claudeWaitMoment: "Claude가 기다리는 중",
+            musicPlacement: "음악 재생 중",
+            besideCover: "커버 옆",
+            coverPlace: "커버 자리")
         case .zhHans: return NotchMascotStrings(
             title: "小伙伴",
             hint: "住在Dynamic Island里的小伙伴。没有其他内容显示时，它就在那里休息，也会出现在音乐和活动上方打招呼，并对发生的事做出反应。",
@@ -462,7 +565,15 @@ extension FeatureStrings {
             visitMoment: "来访", timerStarted: "计时器已开始", downloadFailed: "下载失败", unlocked: "Mac 已解锁",
             petTip: "把指针在它身上停留片刻就能摸摸它。独自待着时，它会打盹，直到你回来。",
             livesInIsland: "小伙伴住在Dynamic Island里。",
-            keywords: "吉祥物 宠物 伙伴 角色")
+            keywords: "吉祥物 宠物 伙伴 角色",
+            claudeWait: "Claude Code 等待时提醒我",
+            claudeWaitHint: "当 Claude Code 需要你的批准或回答时，小伙伴会出来一直等到你回应，等得越久越生气。会在 Claude Code 的设置中添加一个小钩子。",
+            claudeWaitNeedsAgents: "需要在 AI 智能体中开启 Claude。",
+            claudeWaitFailed: "无法读取 Claude Code 的设置，因此未做任何更改。",
+            claudeWaitMoment: "Claude 正在等待",
+            musicPlacement: "播放音乐时",
+            besideCover: "封面旁边",
+            coverPlace: "封面位置")
         case .zhTW: return NotchMascotStrings(
             title: "小夥伴",
             hint: "住在Dynamic Island裡的小夥伴。沒有其他內容顯示時，它就在那裡休息，也會出現在音樂和活動上方打招呼，並對發生的事做出反應。",
@@ -489,7 +600,15 @@ extension FeatureStrings {
             visitMoment: "來訪", timerStarted: "計時器已開始", downloadFailed: "下載失敗", unlocked: "Mac 已解鎖",
             petTip: "把指標在它身上停留片刻就能摸摸它。獨自待著時，它會打盹，直到你回來。",
             livesInIsland: "小夥伴住在Dynamic Island裡。",
-            keywords: "吉祥物 寵物 夥伴 角色")
+            keywords: "吉祥物 寵物 夥伴 角色",
+            claudeWait: "Claude Code 等待時提醒我",
+            claudeWaitHint: "當 Claude Code 需要你的核准或回答時，小夥伴會出來一直等到你回應，等得越久越生氣。會在 Claude Code 的設定中加入一個小掛鉤。",
+            claudeWaitNeedsAgents: "需要在 AI 代理中開啟 Claude。",
+            claudeWaitFailed: "無法讀取 Claude Code 的設定，因此未做任何更改。",
+            claudeWaitMoment: "Claude 正在等待",
+            musicPlacement: "播放音樂時",
+            besideCover: "封面旁邊",
+            coverPlace: "封面位置")
         case .zhHK: return NotchMascotStrings(
             title: "小夥伴",
             hint: "住在Dynamic Island裡的小夥伴。沒有其他內容顯示時，它就在那裡休息，也會出現在音樂和活動上方打招呼，並對發生的事作出反應。",
@@ -516,7 +635,15 @@ extension FeatureStrings {
             visitMoment: "來訪", timerStarted: "計時器已開始", downloadFailed: "下載失敗", unlocked: "Mac 已解鎖",
             petTip: "把指標在它身上停留片刻就能摸摸它。獨自待著時，它會打盹，直到你回來。",
             livesInIsland: "小夥伴住在Dynamic Island裡。",
-            keywords: "吉祥物 寵物 夥伴 角色")
+            keywords: "吉祥物 寵物 夥伴 角色",
+            claudeWait: "Claude Code 等待時提醒我",
+            claudeWaitHint: "當 Claude Code 需要你的批准或回答時，小夥伴會出來一直等到你回應，等得越耐越嬲。會在 Claude Code 的設定中加入一個小掛鈎。",
+            claudeWaitNeedsAgents: "需要在 AI 代理中開啟 Claude。",
+            claudeWaitFailed: "無法讀取 Claude Code 的設定，因此沒有作任何更改。",
+            claudeWaitMoment: "Claude 等緊你",
+            musicPlacement: "播放音樂時",
+            besideCover: "封面旁邊",
+            coverPlace: "封面位置")
         case .uk: return NotchMascotStrings(
             title: "Компаньйон",
             hint: "Маленький друг, який живе в Dynamic Island. Він відпочиває там, коли більше нічого не показано, і виходить поверх музики й активностей, щоб привітатися та відреагувати на те, що відбувається.",
@@ -543,7 +670,15 @@ extension FeatureStrings {
             visitMoment: "Візит", timerStarted: "Таймер запущено", downloadFailed: "Не вдалося завантажити", unlocked: "Mac розблоковано",
             petTip: "Затримайте на ньому вказівник, щоб погладити. Залишившись сам, він дрімає, доки ви не повернетеся.",
             livesInIsland: "Компаньйон живе в Dynamic Island.",
-            keywords: "маскот улюбленець приятель персонаж")
+            keywords: "маскот улюбленець приятель персонаж",
+            claudeWait: "Нагадувати, коли Claude Code чекає",
+            claudeWaitHint: "Коли Claude Code потрібне ваше схвалення чи відповідь, компаньйон виходить і залишається, доки ви не відповісте, сердячись тим більше, чим довше чекає. Додає невеликий хук до налаштувань Claude Code.",
+            claudeWaitNeedsAgents: "Потрібні ШІ-агенти з увімкненим Claude.",
+            claudeWaitFailed: "Не вдалося прочитати налаштування Claude Code, тому нічого не змінено.",
+            claudeWaitMoment: "Claude чекає",
+            musicPlacement: "Коли грає музика",
+            besideCover: "Поруч з обкладинкою",
+            coverPlace: "Замість обкладинки")
         }
     }
 }

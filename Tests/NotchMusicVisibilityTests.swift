@@ -57,6 +57,8 @@ enum NotchMusicVisibilityTests {
             primary == .timer ? timerCompanions : []
         }
         var showsCompactActivityPicker = false
+        /// The companion keeping its place beside the song's cover.
+        var mascotHoldsMusicSlot = false
         var compactActivityPickerLayout = NotchActivityPickerLayout(
             count: 2, labelWidth: 80, stripSize: CGSize(width: 300, height: 32), screenWidth: 1440)
         var hiddenInFullscreen = false
@@ -441,6 +443,11 @@ enum NotchMusicVisibilityTests {
         let musicWing = naming.compactActivityGeometry.compactActivityWingWidth
         suite.expect(naming.compactActivity == .music && musicWing > 0 && naming.surfaceShift == 0,
                      "precondition: the music strip rests beside the camera with even wings")
+        naming.mascotHoldsMusicSlot = true
+        let slot = NotchMascotSupport.musicSlotWidth(stripHeight: naming.geometry.stripHeight)
+        suite.expect(abs(naming.compactActivityGeometry.compactActivityWingWidth - musicWing - slot) < 0.5,
+                     "the companion waiting beside the cover grows each wing by its room")
+        naming.mascotHoldsMusicSlot = false
         naming.namedMusicWings = NotchNoticeWings(leading: musicWing + 120, trailing: musicWing)
         suite.expect(naming.surfaceSize == CGSize(width: plainStrip.width + 120, height: plainStrip.height)
                      && naming.surfaceShift == -60,

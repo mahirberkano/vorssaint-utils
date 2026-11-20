@@ -994,6 +994,8 @@ enum DefaultsKey {
     static let notchMascotSide = "notchMascotSide" // NotchMascotSide.rawValue, beside the camera
     static let notchMascotVisitFrequency = "notchMascotVisitFrequency" // NotchMascotVisitFrequency.rawValue
     static let notchMascotHidesWhenIdle = "notchMascotHidesWhenIdle" // hops into the island after a quiet while
+    static let notchMascotClaudeWait = "notchMascotClaudeWait" // comes out and waits while Claude Code waits on the person
+    static let notchMascotMusicPlacement = "notchMascotMusicPlacement" // stands beside the song's cover, or in its place
     static let notchCommandBar = "notchCommandBar" // the Command Bar comes out of the island
     static let notchCommandBarStyle = "notchCommandBarStyle" // NotchCommandBarStyle.rawValue
     // Legacy inverse preference; the explicit visibility switch supersedes it.
@@ -1604,6 +1606,8 @@ enum Defaults {
         DefaultsKey.notchMascotSide: NotchMascotSide.left.rawValue,
         DefaultsKey.notchMascotVisitFrequency: NotchMascotVisitFrequency.normal.rawValue,
         DefaultsKey.notchMascotHidesWhenIdle: true,
+        DefaultsKey.notchMascotClaudeWait: false,
+        DefaultsKey.notchMascotMusicPlacement: NotchMascotMusicPlacement.besideCover.rawValue,
         DefaultsKey.notchCommandBar: true,
         DefaultsKey.notchCommandBarStyle: NotchCommandBarStyle.droplet.rawValue,
         DefaultsKey.notchHideInCaptures: false,

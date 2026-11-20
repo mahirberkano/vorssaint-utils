@@ -49,6 +49,8 @@ final class NotchMascotRig: NSObject {
     private let bulb = CAShapeLayer()
     private let fill = CAGradientLayer()
     private let fillMask = CAShapeLayer()
+    /// A red flush over the body, shown only while it is cross.
+    private let blush = CAShapeLayer()
     private let visor = CAShapeLayer()
     private let shine = CAShapeLayer()
     private let face = CALayer()
@@ -72,16 +74,18 @@ final class NotchMascotRig: NSObject {
         root.addSublayer(hopper)
         hopper.addSublayer(squasher)
         squasher.addSublayer(tilter)
-        for layer in [ears, antenna, bulb, fill, visor, shine] { tilter.addSublayer(layer) }
+        for layer in [ears, antenna, bulb, fill, blush, visor, shine] { tilter.addSublayer(layer) }
         tilter.addSublayer(attention)
         attention.addSublayer(face)
         face.addSublayer(leftEye)
         face.addSublayer(rightEye)
         fill.mask = fillMask
-        for layer in [root, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor, shine,
+        for layer in [root, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, blush, visor, shine,
                       leftEye, rightEye] {
             layer.actions = Self.noActions
         }
+        blush.fillColor = Self.blushColor
+        blush.opacity = 0
         shine.fillColor = NotchMascotColor.shine.cgColor
         visor.fillColor = NotchMascotColor.visor.cgColor
     }
@@ -115,7 +119,7 @@ final class NotchMascotRig: NSObject {
         }
         let box = CGRect(x: 0, y: 0, width: size, height: size)
         root.bounds = box
-        for layer in [hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor, shine] {
+        for layer in [hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, blush, visor, shine] {
             layer.frame = box
             layer.contentsScale = scale
         }
@@ -152,6 +156,8 @@ final class NotchMascotRig: NSObject {
                 eye.shadowOpacity = 0
             }
         }
+        blush.path = fillMask.path
+        blush.opacity = mood == .angry ? Self.blushOpacity : 0
         for layer in [ears, antenna, bulb, visor] { layer.isHidden = !robot }
         shine.path = NotchMascotGeometry.shine(look.face, size: size)
         shine.isHidden = robot
@@ -174,6 +180,7 @@ final class NotchMascotRig: NSObject {
         if mood != .sleepy { blinks = 0 }
         apply(mood.expression, animated: animated && !reduceMotion)
         lightBulb(mood != .sleepy, animated: animated && !reduceMotion)
+        flush(animated: animated && !reduceMotion)
         guard animated, !reduceMotion, size > 0 else { syncBlinking(); return }
         switch mood {
         case .surprised: pop()
@@ -274,6 +281,24 @@ final class NotchMascotRig: NSObject {
         blinks = 0
         dozed = false
         apply(mood.expression, animated: false)
+        flush(animated: false)
+    }
+
+    private static let blushColor = CGColor(red: 1, green: 0.353, blue: 0.306, alpha: 1)
+    private static let blushOpacity: Float = 0.35
+
+    /// The red flush of a cross face comes and goes with its mood.
+    private func flush(animated: Bool) {
+        let target: Float = mood == .angry ? Self.blushOpacity : 0
+        let current = blush.presentation()?.opacity ?? blush.opacity
+        blush.opacity = target
+        guard animated, current != target else { blush.removeAnimation(forKey: "flush"); return }
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = current
+        fade.toValue = target
+        fade.duration = 0.4
+        fade.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        blush.add(fade, forKey: "flush")
     }
 
     // MARK: Attention
@@ -511,6 +536,7 @@ final class NotchMascotRig: NSObject {
             case .perk, .bounce: flashFace(.alert, duration: 1)
             case .ready: flashFace(.determined, duration: 1)
             case .groove: flashFace(.happy, duration: 1.4)
+            case .stomp: flashFace(.angry, duration: 1)
             }
             return
         }
@@ -628,6 +654,31 @@ final class NotchMascotRig: NSObject {
             let land = CAKeyframeAnimation(keyPath: "transform")
             land.values = squashes.map { NSValue(caTransform3D: $0) }
             land.keyTimes = times
+            land.duration = reaction.length
+            squasher.add(land, forKey: "squash")
+        case .stomp:
+            // Cross: two short, low stamps, landing squashed, with a shake
+            // from side to side on each.
+            flashFace(.angry, duration: reaction.length)
+            let height = max(1, lift * 0.3)
+            let stamp = CAKeyframeAnimation(keyPath: "transform.translation.y")
+            stamp.values = [0, -height, 0, -height, 0]
+            stamp.keyTimes = [0, 0.15, 0.35, 0.55, 0.75]
+            stamp.timingFunctions = (0..<4).map { CAMediaTimingFunction(name: $0 % 2 == 0 ? .easeOut : .easeIn) }
+            stamp.duration = reaction.length
+            stamp.isAdditive = true
+            hopper.add(stamp, forKey: "hop")
+            let shake = CAKeyframeAnimation(keyPath: "transform.translation.x")
+            shake.values = [0, -1, 1, -1, 1, 0].map { $0 * max(1, size * 0.06) }
+            shake.keyTimes = [0, 0.3, 0.38, 0.7, 0.78, 0.9]
+            shake.duration = reaction.length
+            shake.isAdditive = true
+            // On the layer that leans, so the squash below cannot replace it.
+            tilter.add(shake, forKey: "shake")
+            let land = CAKeyframeAnimation(keyPath: "transform")
+            land.values = [squashed(0), squashed(0.14), squashed(0), squashed(0.14), squashed(0)]
+                .map { NSValue(caTransform3D: $0) }
+            land.keyTimes = [0, 0.37, 0.5, 0.77, 0.9]
             land.duration = reaction.length
             squasher.add(land, forKey: "squash")
         }
@@ -1165,7 +1216,7 @@ final class NotchMascotHostView: NSView {
         cameoWork?.cancel(); cameoWork = nil
         mascot.wake(animated: false)
         mascot.playVisit(path(), greeting: visit.greeting, baseline: baseline, stand: stand, start: visit.start,
-                         holdsEnd: visit.kind.endsOutOfSight)
+                         holdsEnd: visit.kind.comesOverActivity)
         guard let reaction = visit.kind.reaction else { return }
         // A strip drawn again after it landed picks the visit up there, and
         // does not play the reaction late. Lingering, it is already there.
@@ -1287,7 +1338,7 @@ struct NotchMascotActivityVisit: ViewModifier {
         // A countdown is watched from beside a camera; a capsule copy has
         // none, and stepping its timer aside there would only blank it.
         let visit = track == nil ? nil : service.mascotVisit.flatMap {
-            $0.kind.endsOutOfSight && !($0.kind.watchesTimer && track?.hidden == nil) ? $0 : nil
+            $0.kind.comesOverActivity && !($0.kind.watchesTimer && track?.hidden == nil) ? $0 : nil
         }
         // Reacting or watching a countdown beside a camera, it covers only
         // the wing it stands in, as the black of the closed island, and the
@@ -1310,7 +1361,9 @@ struct NotchMascotActivityVisit: ViewModifier {
                 // returns as it goes behind the camera. Laid out on the
                 // companion's own track, which stays on the camera however far
                 // a strip reaches to one side.
-                if ownWing, service.mascotStepsAside, let track, let hidden {
+                // Beside the cover it stands in room the strip made for it,
+                // and nothing needs covering.
+                if ownWing, service.mascotStepsAside, !service.mascotHoldsMusicSlot, let track, let hidden {
                     Color.black
                         .frame(width: rightWing ? track.width - hidden.upperBound : max(0, hidden.lowerBound - clearance),
                                height: track.height)

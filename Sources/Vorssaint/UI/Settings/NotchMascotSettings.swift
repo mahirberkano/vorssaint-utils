@@ -18,6 +18,12 @@ struct NotchMascotSettings: View {
     @AppStorage(DefaultsKey.notchMascotVisits) private var visits = true
     @AppStorage(DefaultsKey.notchMascotReactions) private var reactions = true
     @AppStorage(DefaultsKey.notchMascotHidesWhenIdle) private var hidesWhenIdle = true
+    @AppStorage(DefaultsKey.notchMascotClaudeWait) private var claudeWait = false
+    @AppStorage(DefaultsKey.notchMascotMusicPlacement) private var musicPlacement = NotchMascotMusicPlacement.besideCover.rawValue
+    /// Waiting with Claude Code reads Claude's sessions through AI Agents.
+    @AppStorage(DefaultsKey.notchAgentsEnabled) private var agentsEnabled = false
+    @AppStorage(DefaultsKey.notchAgentsClaude) private var agentsClaude = true
+    @ObservedObject private var claudeWaits = ClaudeWaitService.shared
     @AppStorage(DefaultsKey.notchMascotStyle) private var style = NotchMascotStyle.minimal.rawValue
     @AppStorage(DefaultsKey.notchMascotShape) private var shape = NotchMascotShape.ball.rawValue
     @AppStorage(DefaultsKey.notchMascotPalette) private var palette = NotchMascotPalette.pearl.rawValue
@@ -220,6 +226,13 @@ struct NotchMascotSettings: View {
                 .transition(.opacity)
             }
             switchRow("theatermasks", text.reactions, caption: text.reactionsHint, isOn: $reactions)
+            switchRow("hourglass", text.claudeWait, caption: claudeWaitCaption, isOn: $claudeWait)
+                .disabled(!claudeWaitReady)
+            if restsBesideCamera {
+                SettingsChoiceRow(symbol: "music.note", title: text.musicPlacement, selection: $musicPlacement) {
+                    ForEach(NotchMascotMusicPlacement.allCases) { Text(text.musicPlacement($0)).tag($0.rawValue) }
+                }
+            }
         }
         .animation(animation, value: visits)
     }
@@ -250,6 +263,17 @@ struct NotchMascotSettings: View {
             }
         }
         .animation(animation, value: available && commandBar)
+    }
+
+    /// AI Agents is installed and on, with Claude among its agents.
+    private var claudeWaitReady: Bool {
+        features.isAvailable(.notchAgents) && agentsEnabled && agentsClaude
+    }
+
+    private var claudeWaitCaption: String {
+        if !claudeWaitReady { return text.claudeWaitNeedsAgents }
+        if claudeWait, claudeWaits.installFailure != nil { return text.claudeWaitFailed }
+        return text.claudeWaitHint
     }
 
     /// An option with its icon, a line about it and a switch, like the rest of Settings.

@@ -32,6 +32,8 @@ enum NotchMascotHidingContract {
         var mascotVisit: NotchMascotVisit? { didSet { noteMascotStirred() } }
         var pendingMascotReaction: (reaction: NotchMascotReaction, deadline: CFTimeInterval, notBefore: CFTimeInterval)?
         var mascotBridging = false, mascotInBar = false
+        /// Claude Code waiting on the person keeps it out.
+        var mascotClaudeWait: ClaudeWaitStage?
         var mascotVisitWork: DispatchWorkItem?
         var mascotStepBackWork: DispatchWorkItem?
         var mascotStepsAside = false
@@ -112,6 +114,16 @@ enum NotchMascotHidingContract {
                      "a reaction or a visit starts the quiet while over")
         DispatchQueue.main.advance(delay * 0.2)
         suite.expect(stirred.mascotTucked, "and a whole quiet while later it hides")
+
+        // Claude Code waiting on the person keeps it out until the wait is over.
+        let waiting = out()
+        waiting.mascotClaudeWait = .attention
+        DispatchQueue.main.advance(delay + retry * 2)
+        suite.expect(!waiting.mascotTucked && waiting.mascotTuckWork != nil,
+                     "while Claude Code waits it stays out, trying again a little later")
+        waiting.mascotClaudeWait = nil
+        DispatchQueue.main.advance(retry)
+        suite.expect(waiting.mascotTucked, "once the wait is over it hides as usual")
 
         // Under the pointer, it waits for the pointer to go.
         let watched = out()

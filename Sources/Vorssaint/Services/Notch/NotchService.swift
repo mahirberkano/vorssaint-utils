@@ -383,6 +383,17 @@ final class NotchService: ObservableObject {
     /// The calendar countdown the island showed when the companion last looked.
     private var mascotSawCountdown: NotchCalendarCountdown?
     private var lastMascotAgentStart: CFTimeInterval = -.infinity
+    /// How cross the companion is with Claude Code waiting on the person,
+    /// nil while nothing waits. Its face follows it everywhere it is drawn.
+    @Published private(set) var mascotClaudeWait: ClaudeWaitStage?
+    private var claudeWaitSubscription: AnyCancellable?
+    private var claudeWaitTicker: Timer?
+    private var lastClaudeWaitStomp: CFTimeInterval = -.infinity
+    /// The companion keeps a place beside the song's cover while it waits
+    /// over the music strip, which grows to make room for it.
+    @Published private(set) var mascotHoldsMusicSlot = false
+    /// The glad visit that ends a wait, which keeps that place until it is over.
+    private var claudeWaitRelief: UUID?
     /// The companion is out in the Command Bar's drop, and the island rests without it.
     @Published private(set) var mascotInBar = false
     /// The companion stands in the window's own layer while it steps into a
@@ -506,7 +517,10 @@ final class NotchService: ObservableObject {
     var mascotAtRest: Bool { mascotOn && idleContent == .none && !mascotInBar && !mascotTucked }
 
     /// The face it keeps at rest: wide awake while Keep Awake holds the Mac up.
-    var mascotRestingMood: NotchMascotMood { KeepAwakeManager.shared.isActive ? .alert : .idle }
+    var mascotRestingMood: NotchMascotMood {
+        if let stage = mascotClaudeWait { return NotchMascotSupport.mood(for: stage) }
+        return KeepAwakeManager.shared.isActive ? .alert : .idle
+    }
 
     /// Whether the closed island on `geometry` draws the companion: resting,
     /// or strolling through, where its wings fit beside the camera. A capsule
@@ -677,7 +691,11 @@ final class NotchService: ObservableObject {
             geometry.compactSideRoom = min(geometry.compactSideRoom ?? 0, room)
         }
         switch activity {
-        case .music: return geometry.compactMusicGeometry
+        case .music:
+            guard mascotHoldsMusicSlot else { return geometry.compactMusicGeometry }
+            let roomy = geometry.compactMusicGeometry(companionRoom: NotchMascotSupport.musicSlotWidth(stripHeight: geometry.stripHeight))
+            // Menus that leave no room for the wider strip keep it as it is.
+            return roomy.compactActivityWingWidth > 0 ? roomy : geometry.compactMusicGeometry
         case .timer:
             return geometry.compactTimerGeometry(showsDownloads: companion == .downloads,
                                                  wing: timerStripWing(for: companion, in: geometry))
@@ -3773,6 +3791,10 @@ final class NotchService: ObservableObject {
     }
 
     private func installObservers() {
+        if claudeWaitSubscription == nil {
+            claudeWaitSubscription = ClaudeWaitService.shared.$stage.removeDuplicates().receive(on: DispatchQueue.main)
+                .sink { [weak self] stage in self?.claudeWaitChanged(stage) }
+        }
         observe(.default, NSMenu.didBeginTrackingNotification) { [weak self] in
             guard let self else { return }
             self.activityPickerMenuOpen = self.showsCompactActivityPicker
@@ -4598,6 +4620,11 @@ extension NotchService {
     private func beginMascotVisit(greeting: NotchMascotMood?, asked: Bool = false) {
         nextMascotVisitWork = nil
         guard asked || NotchMascotSupport.visits() else { return }
+        // Waiting with Claude Code it stays where it waits; strolls come later.
+        guard asked || mascotClaudeWait == nil else {
+            scheduleMascotVisit(after: NotchMascotSupport.nextVisitDelay())
+            return
+        }
         // Busy, hidden or out of room: it tries again on its next visit.
         guard canHostMascotVisit(), mascotVisit == nil else {
             scheduleMascotVisit(after: NotchMascotSupport.nextVisitDelay())
@@ -4788,7 +4815,7 @@ extension NotchService {
     private func stageMascotTuck() -> Bool {
         // A reaction still waiting to be seen comes first. One past its time never will be.
         let reacting = pendingMascotReaction.map { CACurrentMediaTime() <= $0.deadline } ?? false
-        guard mascotVisit == nil, !reacting, !mascotBridging, !mascotInBar else { return false }
+        guard mascotVisit == nil, !reacting, !mascotBridging, !mascotInBar, mascotClaudeWait == nil else { return false }
         let shown = mascotRestsInView && canHostMascotVisit()
         mascotTucked = true
         mascotTuckWork?.cancel(); mascotTuckWork = nil
@@ -5094,6 +5121,116 @@ extension NotchService {
         reactMascot(active ? .perk : .yawn)
     }
 
+    // MARK: Claude waiting
+
+    /// Claude Code began or stopped waiting on the person, or grew more
+    /// cross. Its face changes wherever it is drawn; a ticker brings it out
+    /// and keeps it there until the wait is over.
+    fileprivate func claudeWaitChanged(_ stage: ClaudeWaitStage?) {
+        let previous = mascotClaudeWait
+        guard previous != stage else { return }
+        mascotClaudeWait = stage
+        syncMusicSlot()
+        if previous == nil, stage != nil {
+            mascotTuckWork?.cancel(); mascotTuckWork = nil
+            noteMascotStirred()
+            lastClaudeWaitStomp = CACurrentMediaTime()
+            if running, mascotRestsInView, mascotVisit == nil, NotchMascotSupport.isEnabled() { playMascotAtRest(.perk) }
+            let ticker = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in self?.claudeWaitTick() }
+            RunLoop.main.add(ticker, forMode: .common)
+            claudeWaitTicker = ticker
+            claudeWaitTick()
+        } else if stage == nil {
+            claudeWaitTicker?.invalidate(); claudeWaitTicker = nil
+            endClaudeWait()
+        }
+    }
+
+    /// While Claude Code waits: out of hiding, then stamping where it rests,
+    /// or waiting in its wing over the activity the island shows.
+    private func claudeWaitTick() {
+        guard running, let stage = mascotClaudeWait, NotchMascotSupport.isEnabled() else { return }
+        noteMascotStirred()
+        if mascotTucked, !expanded, mascotVisit == nil {
+            untuckMascot()
+            return
+        }
+        if mascotRestsInView {
+            guard mascotVisit == nil, mascotRestedInView, let interval = NotchMascotSupport.stompInterval(stage),
+                  CACurrentMediaTime() - lastClaudeWaitStomp >= interval else { return }
+            lastClaudeWaitStomp = CACurrentMediaTime()
+            playMascotAtRest(.stomp)
+        } else if mascotVisit == nil, compactActivity != nil {
+            // Beside the cover, the strip grows first, and it comes out into the room.
+            syncMusicSlot()
+            if canHostMascotVisit() { beginClaudeWaitVisit(entering: true) }
+        }
+    }
+
+    /// Over the music strip, beside the cover as Settings has it: the strip
+    /// grows while it waits there and while it is glad the wait is over.
+    private func syncMusicSlot() {
+        let reliefShows = claudeWaitRelief != nil && mascotVisit?.id == claudeWaitRelief
+        if !reliefShows, mascotVisit?.id != claudeWaitRelief { claudeWaitRelief = nil }
+        var waiting = false
+        if let kind = mascotVisit?.kind, case .wait = kind { waiting = true }
+        let holds = mascotOn && !geometry.floats && compactActivity == .music
+            && NotchMascotSupport.musicPlacement() == .besideCover
+            && (mascotClaudeWait != nil || waiting || reliefShows)
+        guard holds != mascotHoldsMusicSlot else { return }
+        mascotHoldsMusicSlot = holds
+        refreshPresentation()
+    }
+
+    /// Plays `reaction` where it rests in view, as a reaction let through
+    /// does, without waiting its turn: the wait keeps its own pace.
+    private func playMascotAtRest(_ reaction: NotchMascotReaction) {
+        let event = NotchMascotReactionEvent(id: UUID(), reaction: reaction, start: CACurrentMediaTime())
+        mascotReaction = event
+        if mascotBridging { windowHost?.reactMascotBridge(event, lift: mascotBridgeLift) }
+    }
+
+    /// Over an activity's strip it waits in its own wing, one loop after
+    /// another, each at the stage the wait has reached. A notice or the
+    /// island opening ends it, and the ticker brings it back after.
+    private func beginClaudeWaitVisit(entering: Bool) {
+        guard let stage = mascotClaudeWait else { return }
+        let visit = NotchMascotVisit(id: UUID(), kind: .wait(stage, entering: entering),
+                                     greeting: NotchMascotSupport.mood(for: stage), start: CACurrentMediaTime())
+        setMascotVisit(visit)
+        mascotVisitWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.mascotVisitWork = nil
+            if self.mascotClaudeWait != nil, !self.mascotRestsInView, self.compactActivity != nil, self.canHostMascotVisit() {
+                self.beginClaudeWaitVisit(entering: false)
+            } else {
+                self.endMascotVisit()
+            }
+        }
+        mascotVisitWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + visit.duration, execute: work)
+    }
+
+    /// The wait is over: glad, it goes back to what it was doing, and to
+    /// hiding a quiet while later.
+    private func endClaudeWait() {
+        guard running else { return }
+        if let visit = mascotVisit, case .wait = visit.kind {
+            let relief = NotchMascotVisit(id: UUID(), kind: .linger(.celebrate), greeting: .happy, start: CACurrentMediaTime())
+            claudeWaitRelief = relief.id
+            setMascotVisit(relief)
+            mascotVisitWork?.cancel()
+            let work = DispatchWorkItem { [weak self] in self?.endMascotVisit() }
+            mascotVisitWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + relief.duration, execute: work)
+        } else if mascotRestsInView, mascotVisit == nil, NotchMascotSupport.isEnabled() {
+            playMascotAtRest(.celebrate)
+        }
+        noteMascotStirred()
+        if mascotHidesAtSync == true { scheduleMascotTuck(after: NotchMascotSupport.hideDelay) }
+    }
+
     /// An AI agent getting to work where the companion rests: it stays in its
     /// wing with a ready face as the agent's strip takes its place, then
     /// goes behind the camera and leaves the agent's mark there. Checked as
@@ -5251,6 +5388,7 @@ extension NotchService {
     private func setMascotVisit(_ visit: NotchMascotVisit?) {
         mascotStepBackWork?.cancel(); mascotStepBackWork = nil
         mascotVisit = visit
+        syncMusicSlot()
         mascotStepsAside = visit != nil
         refreshPresentation()
         // A cameo hands the strip back on its way home, timed from the

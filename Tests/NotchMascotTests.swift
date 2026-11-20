@@ -29,6 +29,8 @@ enum NotchMascotTests {
         dropletContracts(suite)
         calendarContracts(suite)
         centeringContracts(suite)
+        waitContracts(suite)
+        musicSlotContracts(suite)
     }
 
     /// Placed by its box, a minimal body sat below the middle it was given,
@@ -854,5 +856,93 @@ enum NotchMascotTests {
         var kinds: [Int32] = []
         path.applyWithBlock { kinds.append($0.pointee.type.rawValue) }
         return kinds
+    }
+    /// Claude Code waiting on the person: the companion comes out and stays,
+    /// tapping its foot more and more often, and its face grows cross.
+    private static func waitContracts(_ suite: TestSuite) {
+        suite.expect(NotchMascotSupport.mood(for: .attention) == .alert && NotchMascotSupport.mood(for: .impatient) == .determined
+                     && NotchMascotSupport.mood(for: .angry) == .angry,
+                     "it looks up, then sets its jaw, then is cross")
+        suite.expect(NotchMascotMood.angry.expression.left == .determined && NotchMascotMood.angry.expression.right == .determined
+                     && NotchMascotMood.angry.expression != NotchMascotMood.determined.expression,
+                     "a cross face narrows its eyes, and is not the determined one")
+        suite.expect(NotchMascotSupport.stompInterval(.attention) == nil && NotchMascotSupport.stompInterval(.impatient) == 6
+                     && NotchMascotSupport.stompInterval(.angry) == 2.5,
+                     "at rest it only looks up at first, then stamps every few seconds, more often when cross")
+        suite.expect(NotchMascotMoment.claudeWait.reaction == .stomp && NotchMascotMoment.claudeWait.symbol == "hourglass"
+                     && NotchMascotReaction.stomp.length == 1.0,
+                     "the preview shows the stomp it does while Claude waits")
+        let kind = NotchMascotVisit.Kind.wait(.angry, entering: false)
+        suite.expect(!kind.endsOutOfSight && kind.takesOnlyItsWing && kind.reaction == nil,
+                     "waiting it stays in sight, in its own wing")
+        suite.expect(kind.comesOverActivity && NotchMascotVisit.Kind.cameo(.love).comesOverActivity
+                     && NotchMascotVisit.Kind.pass.comesOverActivity && !NotchMascotVisit.Kind.lap.comesOverActivity
+                     && !NotchMascotVisit.Kind.home.comesOverActivity,
+                     "an activity's strip shows a wait and what ends out of sight, never a stroll that ends where it rests")
+        suite.expect(NotchMascotMotion.waitLoop == 3.0
+                     && NotchMascotMotion.duration(of: .wait(.attention, entering: false)) == 3.0
+                     && NotchMascotMotion.duration(of: .wait(.attention, entering: true)) == NotchMascotMotion.cameoArrival + 3.0,
+                     "a wait loops every three seconds, after coming out once")
+
+        let left = NotchMascotSupport.track(stripWidth: 268, stripHeight: 32, wing: 44, cameraWidth: 180,
+                                            floats: false, bodyHeight: 32)
+        let right = NotchMascotSupport.track(stripWidth: 268, stripHeight: 32, wing: 44, cameraWidth: 180,
+                                             floats: false, bodyHeight: 32, side: .right)
+        let capsule = NotchMascotSupport.track(stripWidth: 76, stripHeight: 24, wing: 0, cameraWidth: 0,
+                                               floats: true, bodyHeight: 20)
+        func hops(_ path: NotchMascotPath, after start: Int = 0) -> Int {
+            var count = 0
+            for index in max(1, start)..<path.lift.count where path.lift[index] > 0.01 && path.lift[index - 1] <= 0.01 {
+                count += 1
+            }
+            return count
+        }
+        let expectedHops: [ClaudeWaitStage: Int] = [.attention: 0, .impatient: 1, .angry: 3]
+        for (name, track) in [("left wing", left), ("right wing", right), ("capsule", capsule)] {
+            for stage in ClaudeWaitStage.allCases {
+                let looping = NotchMascotMotion.path(for: .wait(stage, entering: false), on: track)
+                suite.expect(abs((looping.x.first ?? .infinity) - track.rest) < 0.5 && abs((looping.x.last ?? .infinity) - track.rest) < 0.5,
+                             "in the \(name), a \(stage) loop starts and ends where it rests, so the next one follows on")
+                suite.expect(hops(looping) == expectedHops[stage], "in the \(name), a \(stage) loop taps \(expectedHops[stage]!) times")
+                suite.expect(abs(looping.duration - NotchMascotMotion.waitLoop) < 0.001, "a loop lasts its loop")
+                let entering = NotchMascotMotion.path(for: .wait(stage, entering: true), on: track)
+                suite.expect(abs((entering.x.first ?? track.rest) - track.rest) > 1 && abs((entering.x.last ?? .infinity) - track.rest) < 0.5,
+                             "in the \(name), it comes out from out of sight to where it rests")
+                suite.expect(hops(entering) == expectedHops[stage]! + 1, "coming out is one more hop")
+            }
+        }
+        let mirrored = NotchMascotMotion.path(for: .wait(.angry, entering: true), on: right)
+        var unmirrored = right
+        unmirrored.mirrored = false
+        unmirrored.rest = right.width - right.rest
+        let plain = NotchMascotMotion.path(for: .wait(.angry, entering: true), on: unmirrored)
+        suite.expect(zip(mirrored.x, plain.x).allSatisfy { abs($0 - (right.width - $1)) < 0.001 },
+                     "on the camera's right it waits as on the left, in a mirror")
+    }
+    /// Over the music strip it stands between the cover and the camera, the
+    /// wing grown to make room, so the cover stays in view.
+    private static func musicSlotContracts(_ suite: TestSuite) {
+        suite.expect(NotchMascotMusicPlacement(rawValue: Defaults.registeredDefaults[DefaultsKey.notchMascotMusicPlacement] as? String ?? "")
+                     == .besideCover && NotchMascotMusicPlacement.allCases == [.besideCover, .coverPlace],
+                     "beside the cover is the default, its place the other choice")
+        let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
+        for barHeight: CGFloat in [24, 32, 37] {
+            let geometry = NotchGeometry(screen: screen, safeAreaTop: 32, cameraWidth: 185, menuBarHeight: barHeight,
+                                         compactSideRoom: 300)
+            let plain = geometry.compactMusicGeometry
+            let room = NotchMascotSupport.musicSlotWidth(stripHeight: plain.stripHeight)
+            let roomy = geometry.compactMusicGeometry(companionRoom: room)
+            suite.expect(abs(roomy.compactActivityWingWidth - plain.compactActivityWingWidth - room) < 0.5,
+                         "with a \(barHeight) pt bar the wing grows by the companion's room")
+            guard let track = NotchMascotSupport.track(overActivity: roomy, size: roomy.compactActivitySize) else {
+                suite.expect(false, "a grown wing has room for the companion"); continue
+            }
+            let coverEnd = NotchMusicStripLayout.coverInset(roomy) + NotchMusicStripLayout.coverSide(roomy)
+            suite.expect(track.rest - track.size / 2 >= coverEnd + 4 && track.rest + track.size / 2 <= roomy.compactActivityWingWidth,
+                         "with a \(barHeight) pt bar it stands clear of the cover, before the camera")
+            suite.expect(NotchMusicStripLayout.coverSide(roomy) == NotchMusicStripLayout.coverSide(plain)
+                         && NotchMusicStripLayout.coverInset(roomy) == NotchMusicStripLayout.coverInset(plain),
+                         "the cover keeps its size and place at the strip's end")
+        }
     }
 }
