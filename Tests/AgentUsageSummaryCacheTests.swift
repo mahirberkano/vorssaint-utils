@@ -70,6 +70,11 @@ enum AgentUsageSummaryCacheTests {
         records[13].cost = 0.5
         records[13].tokens.output += 2
         check("streaming updates unpriced counts and model sort weights")
+        // A streamed reply can grow from a small first reading into a large
+        // prompt that missed the cache, moving bands and becoming a rebuild.
+        cache.recordChanged(at: 0, previous: records[0])
+        records[0].tokens = AgentTokens(input: 10, cacheWrite: 300_000, cacheRead: 20_000, output: 40)
+        check("a streamed correction moves a response between context bands and marks one rebuild")
         now = now.addingTimeInterval(3_600)
         check("sliding windows expire and future responses become current without a history scan")
         suite.expect(cache.accumulatedRecords == 0, "clock-only updates leave historical totals cached")
@@ -91,6 +96,49 @@ enum AgentUsageSummaryCacheTests {
         cache.invalidate()
         check("repricing rebuilds cost, savings and unpriced totals")
         storeIntegration(suite, now: now, calendar: calendar)
+        efficiency(suite, now: now)
+    }
+
+    private static func efficiency(_ suite: TestSuite, now: Date) {
+        func totals(_ tokens: [AgentTokens], model: String = "claude-opus-5-5") -> AgentTotals {
+            tokens.reduce(into: AgentTotals()) { totals, tokens in
+                let price = AgentPricing.cost(AgentBillable(tokens: tokens), model: model)
+                totals.add(AgentUsageRecord(provider: .claude, date: now, model: model, project: "p", session: "s",
+                                            tokens: tokens, cost: price.cost, savings: price.savings))
+            }
+        }
+        suite.expect(AgentEfficiencyScore(AgentTotals()) == nil, "a period without requests has no score")
+
+        let lean = AgentEfficiencyScore(totals(Array(repeating: AgentTokens(input: 10, cacheWrite: 2_000,
+                                                                           cacheRead: 60_000, output: 500), count: 4)))
+        suite.expect(lean?.overall == 100 && lean?.weakest == nil,
+                     "small, cached prompts without rebuilds score full marks")
+
+        let large = AgentEfficiencyScore(totals([AgentTokens(input: 10, cacheWrite: 1_000, cacheRead: 299_000, output: 500)]))
+        suite.expect(large?.parts[.context] == AgentEfficiencyScore.bandValues[2],
+                     "a 300K prompt counts in the 200K to 400K band")
+        suite.expect(large?.overall == 80 && large?.weakest == .context,
+                     "a cached but large context loses only the context part")
+        suite.expect(large?.averageContext == 300_010, "the average context is the prompt per request")
+
+        let cold = totals(Array(repeating: AgentTokens(input: 10, cacheWrite: 1_000, cacheRead: 299_000, output: 500), count: 9)
+                          + [AgentTokens(input: 10, cacheWrite: 300_000, cacheRead: 0, output: 500)])
+        suite.expect(cold.efficiency.rebuilds == 1 && cold.efficiency.rebuildCost > 0,
+                     "a large prompt that mostly missed the cache is priced as a rebuild")
+        let fresh = totals([AgentTokens(input: 10, cacheWrite: 40_000, cacheRead: 0, output: 500)])
+        suite.expect(fresh.efficiency.rebuilds == 0, "a fresh session's first write is not a rebuild")
+        suite.expect(AgentEfficiencyScore(cold)?.weakest == .rebuilds,
+                     "rebuilds that cost much of the period become the part to improve")
+
+        let uncached = AgentEfficiencyScore(totals([AgentTokens(input: 50_000, output: 500)], model: "gpt-6-sol"))
+        suite.expect(uncached?.parts[.cache] == nil && uncached?.hitRate == nil && uncached?.overall == 100,
+                     "a provider without cache traffic is scored on the other parts alone")
+
+        let reading = AgentEfficiency(AgentUsageRecord(provider: .claude, date: now, model: "claude-opus-5-5", project: "p",
+            session: "s", tokens: AgentTokens(input: 10, cacheWrite: 300_000, output: 5), cost: 1, savings: 0))
+        var delta = reading
+        delta -= reading
+        suite.expect(delta == AgentEfficiency(), "subtracting a response's reading leaves nothing behind")
     }
 
     private static func storeIntegration(_ suite: TestSuite, now: Date, calendar: Calendar) {

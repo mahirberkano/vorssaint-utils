@@ -101,6 +101,15 @@ struct NotchAgentStrings {
     let resetsUpdate: String
     let resetsCheckFailed: String
     let resetsHelp: String
+    let efficiencyCard: String
+    let efficiencyCache: String
+    let efficiencyContext: String
+    let efficiencyRebuilds: String
+    let efficiencyHelp: String
+    let efficiencyTipCache: String
+    let efficiencyTipContext: String
+    let efficiencyTipRebuilds: String
+    let efficiencyTipGood: String
 
     func tokens(_ count: String) -> String { String(format: tokensFormat, count) }
     func cached(_ share: String) -> String { String(format: cachedFormat, share) }
@@ -144,6 +153,7 @@ struct NotchAgentStrings {
         case .projects: return projectsCard
         case .activity: return activityCard
         case .resets: return resetsCard
+        case .efficiency: return efficiencyCard
         }
     }
 
@@ -285,7 +295,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Sign in to Codex with a plan to see resets",
         resetsUpdate: "Update Codex to use resets here",
         resetsCheckFailed: "Couldn’t check resets",
-        resetsHelp: "A reset renews the Codex session and weekly limits at once. Codex checks your resets with its own sign-in, which Vorssaint never reads.")
+        resetsHelp: "A reset renews the Codex session and weekly limits at once. Codex checks your resets with its own sign-in, which Vorssaint never reads.",
+        efficiencyCard: "Efficiency",
+        efficiencyCache: "Cache hits",
+        efficiencyContext: "Avg. context",
+        efficiencyRebuilds: "Cache rebuilds",
+        efficiencyHelp: "A score from 0 to 100: cache hits (40%), how small each request’s context stays (40%) and what writing an expired cache again cost (20%).",
+        efficiencyTipCache: "Much of each prompt missed the cache. Keep the start of a conversation unchanged so it can be reused.",
+        efficiencyTipContext: "Requests carry a large context. Clear the conversation between tasks, or compact it, so each turn reads less.",
+        efficiencyTipRebuilds: "Breaks let the cache expire, and the whole context was written again. Start a fresh conversation after a long break.",
+        efficiencyTipGood: "Context and cache are well used.")
 
     static let uk = NotchAgentStrings(
         title: "ШІ-агенти",
@@ -384,7 +403,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Увійдіть у Codex із планом, щоб бачити скидання",
         resetsUpdate: "Оновіть Codex, щоб використовувати скидання тут",
         resetsCheckFailed: "Не вдалося перевірити скидання",
-        resetsHelp: "Скидання одразу поновлює ліміти сеансу й тижня Codex. Codex перевіряє ваші скидання через власний вхід, який Vorssaint ніколи не читає.")
+        resetsHelp: "Скидання одразу поновлює ліміти сеансу й тижня Codex. Codex перевіряє ваші скидання через власний вхід, який Vorssaint ніколи не читає.",
+        efficiencyCard: "Ефективність",
+        efficiencyCache: "Влучання в кеш",
+        efficiencyContext: "Сер. контекст",
+        efficiencyRebuilds: "Перебудови кешу",
+        efficiencyHelp: "Оцінка від 0 до 100: влучання в кеш (40%), наскільки малим лишається контекст кожного запиту (40%) і скільки коштував повторний запис простроченого кешу (20%).",
+        efficiencyTipCache: "Значна частина запитів не потрапила в кеш. Не змінюйте початок розмови, щоб його можна було використати знову.",
+        efficiencyTipContext: "Запити несуть великий контекст. Очищуйте розмову між завданнями або стискайте її, щоб кожен хід читав менше.",
+        efficiencyTipRebuilds: "Під час перерв кеш спливав, і весь контекст записувався знову. Після довгої перерви починайте нову розмову.",
+        efficiencyTipGood: "Контекст і кеш використовуються добре.")
 
     static let ptBR = NotchAgentStrings(
         title: "Agentes de IA",
@@ -483,7 +511,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Entre no Codex com um plano para ver as redefinições",
         resetsUpdate: "Atualize o Codex para usar as redefinições aqui",
         resetsCheckFailed: "Não foi possível verificar as redefinições",
-        resetsHelp: "Uma redefinição renova de uma vez os limites da sessão e da semana do Codex. O Codex verifica suas redefinições com o próprio login, que o Vorssaint nunca lê.")
+        resetsHelp: "Uma redefinição renova de uma vez os limites da sessão e da semana do Codex. O Codex verifica suas redefinições com o próprio login, que o Vorssaint nunca lê.",
+        efficiencyCard: "Eficiência",
+        efficiencyCache: "Acertos no cache",
+        efficiencyContext: "Contexto médio",
+        efficiencyRebuilds: "Cache refeito",
+        efficiencyHelp: "Uma nota de 0 a 100: acertos no cache (40%), quão pequeno fica o contexto de cada pedido (40%) e quanto custou gravar de novo um cache expirado (20%).",
+        efficiencyTipCache: "Boa parte de cada prompt não aproveitou o cache. Mantenha o início da conversa igual para que ele seja reutilizado.",
+        efficiencyTipContext: "Os pedidos carregam um contexto grande. Limpe a conversa entre tarefas, ou compacte-a, para cada turno ler menos.",
+        efficiencyTipRebuilds: "Nas pausas o cache expirou e todo o contexto foi gravado de novo. Comece uma conversa nova depois de uma pausa longa.",
+        efficiencyTipGood: "Contexto e cache bem aproveitados.")
 
     static let es = NotchAgentStrings(
         title: "Agentes de IA",
@@ -582,7 +619,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Inicia sesión en Codex con un plan para ver los reinicios",
         resetsUpdate: "Actualiza Codex para usar los reinicios aquí",
         resetsCheckFailed: "No se pudieron comprobar los reinicios",
-        resetsHelp: "Un reinicio renueva a la vez los límites de la sesión y de la semana de Codex. Codex comprueba tus reinicios con su propio inicio de sesión, que Vorssaint nunca lee.")
+        resetsHelp: "Un reinicio renueva a la vez los límites de la sesión y de la semana de Codex. Codex comprueba tus reinicios con su propio inicio de sesión, que Vorssaint nunca lee.",
+        efficiencyCard: "Eficiencia",
+        efficiencyCache: "Aciertos de caché",
+        efficiencyContext: "Contexto medio",
+        efficiencyRebuilds: "Caché rehecha",
+        efficiencyHelp: "Una puntuación de 0 a 100: aciertos de caché (40%), lo pequeño que se mantiene el contexto de cada solicitud (40%) y lo que costó volver a escribir una caché caducada (20%).",
+        efficiencyTipCache: "Buena parte de cada prompt no aprovechó la caché. Mantén igual el inicio de la conversación para que se reutilice.",
+        efficiencyTipContext: "Las solicitudes llevan un contexto grande. Borra la conversación entre tareas, o compáctala, para que cada turno lea menos.",
+        efficiencyTipRebuilds: "En las pausas la caché caducó y todo el contexto se escribió de nuevo. Empieza una conversación nueva tras una pausa larga.",
+        efficiencyTipGood: "Contexto y caché bien aprovechados.")
 
     static let sk = NotchAgentStrings(
         title: "AI agenti",
@@ -681,7 +727,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Prihláste sa do Codexu s plánom, aby ste videli obnovenia",
         resetsUpdate: "Aktualizujte Codex, aby ste tu mohli používať obnovenia",
         resetsCheckFailed: "Obnovenia sa nepodarilo skontrolovať",
-        resetsHelp: "Obnovenie naraz obnoví limity relácie aj týždňa v Codexe. Codex kontroluje vaše obnovenia vlastným prihlásením, ktoré Vorssaint nikdy nečíta.")
+        resetsHelp: "Obnovenie naraz obnoví limity relácie aj týždňa v Codexe. Codex kontroluje vaše obnovenia vlastným prihlásením, ktoré Vorssaint nikdy nečíta.",
+        efficiencyCard: "Efektivita",
+        efficiencyCache: "Zásahy cache",
+        efficiencyContext: "Priem. kontext",
+        efficiencyRebuilds: "Obnovy cache",
+        efficiencyHelp: "Skóre od 0 do 100: zásahy cache (40 %), aký malý zostáva kontext každej požiadavky (40 %) a koľko stál opätovný zápis vypršanej cache (20 %).",
+        efficiencyTipCache: "Veľká časť promptov minula cache. Nemeňte začiatok konverzácie, aby sa dal znova použiť.",
+        efficiencyTipContext: "Požiadavky nesú veľký kontext. Medzi úlohami konverzáciu vymažte alebo zhutnite, aby každé kolo čítalo menej.",
+        efficiencyTipRebuilds: "Počas prestávok cache vypršala a celý kontext sa zapísal znova. Po dlhej prestávke začnite novú konverzáciu.",
+        efficiencyTipGood: "Kontext aj cache sú dobre využité.")
 
     static let de = NotchAgentStrings(
         title: "KI-Agenten",
@@ -780,7 +835,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Melde dich in Codex mit einem Plan an, um Zurücksetzungen zu sehen",
         resetsUpdate: "Aktualisiere Codex, um Zurücksetzungen hier zu nutzen",
         resetsCheckFailed: "Zurücksetzungen konnten nicht geprüft werden",
-        resetsHelp: "Eine Zurücksetzung erneuert das Sitzungs- und das Wochenlimit von Codex auf einmal. Codex prüft deine Zurücksetzungen mit seiner eigenen Anmeldung, die Vorssaint nie liest.")
+        resetsHelp: "Eine Zurücksetzung erneuert das Sitzungs- und das Wochenlimit von Codex auf einmal. Codex prüft deine Zurücksetzungen mit seiner eigenen Anmeldung, die Vorssaint nie liest.",
+        efficiencyCard: "Effizienz",
+        efficiencyCache: "Cache-Treffer",
+        efficiencyContext: "Ø Kontext",
+        efficiencyRebuilds: "Cache-Neuaufbau",
+        efficiencyHelp: "Eine Wertung von 0 bis 100: Cache-Treffer (40 %), wie klein der Kontext jeder Anfrage bleibt (40 %) und was das erneute Schreiben eines abgelaufenen Caches gekostet hat (20 %).",
+        efficiencyTipCache: "Ein großer Teil der Prompts hat den Cache verfehlt. Lass den Anfang einer Unterhaltung unverändert, damit er wiederverwendet wird.",
+        efficiencyTipContext: "Anfragen tragen einen großen Kontext. Leere die Unterhaltung zwischen Aufgaben oder komprimiere sie, damit jeder Schritt weniger liest.",
+        efficiencyTipRebuilds: "In Pausen ist der Cache abgelaufen und der ganze Kontext wurde neu geschrieben. Beginne nach einer langen Pause eine neue Unterhaltung.",
+        efficiencyTipGood: "Kontext und Cache werden gut genutzt.")
 
     static let fr = NotchAgentStrings(
         title: "Agents IA",
@@ -879,7 +943,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Connectez-vous à Codex avec un forfait pour voir les réinitialisations",
         resetsUpdate: "Mettez à jour Codex pour utiliser les réinitialisations ici",
         resetsCheckFailed: "Impossible de vérifier les réinitialisations",
-        resetsHelp: "Une réinitialisation renouvelle d’un coup les limites de la session et de la semaine de Codex. Codex vérifie vos réinitialisations avec sa propre connexion, que Vorssaint ne lit jamais.")
+        resetsHelp: "Une réinitialisation renouvelle d’un coup les limites de la session et de la semaine de Codex. Codex vérifie vos réinitialisations avec sa propre connexion, que Vorssaint ne lit jamais.",
+        efficiencyCard: "Efficacité",
+        efficiencyCache: "Succès du cache",
+        efficiencyContext: "Contexte moyen",
+        efficiencyRebuilds: "Cache reconstruit",
+        efficiencyHelp: "Une note de 0 à 100 : succès du cache (40 %), la taille du contexte de chaque requête (40 %) et ce qu’a coûté la réécriture d’un cache expiré (20 %).",
+        efficiencyTipCache: "Une bonne part de chaque prompt a manqué le cache. Gardez le début de la conversation inchangé pour qu’il soit réutilisé.",
+        efficiencyTipContext: "Les requêtes portent un contexte important. Videz la conversation entre deux tâches, ou compactez-la, pour que chaque tour lise moins.",
+        efficiencyTipRebuilds: "Pendant les pauses, le cache a expiré et tout le contexte a été réécrit. Commencez une nouvelle conversation après une longue pause.",
+        efficiencyTipGood: "Contexte et cache bien utilisés.")
 
     static let it = NotchAgentStrings(
         title: "Agenti IA",
@@ -978,7 +1051,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Accedi a Codex con un piano per vedere i ripristini",
         resetsUpdate: "Aggiorna Codex per usare i ripristini qui",
         resetsCheckFailed: "Impossibile controllare i ripristini",
-        resetsHelp: "Un ripristino rinnova insieme i limiti della sessione e della settimana di Codex. Codex controlla i tuoi ripristini con il proprio accesso, che Vorssaint non legge mai.")
+        resetsHelp: "Un ripristino rinnova insieme i limiti della sessione e della settimana di Codex. Codex controlla i tuoi ripristini con il proprio accesso, che Vorssaint non legge mai.",
+        efficiencyCard: "Efficienza",
+        efficiencyCache: "Hit della cache",
+        efficiencyContext: "Contesto medio",
+        efficiencyRebuilds: "Cache ricostruita",
+        efficiencyHelp: "Un punteggio da 0 a 100: hit della cache (40%), quanto resta piccolo il contesto di ogni richiesta (40%) e quanto è costato riscrivere una cache scaduta (20%).",
+        efficiencyTipCache: "Buona parte di ogni prompt ha mancato la cache. Lascia invariato l’inizio della conversazione perché venga riutilizzato.",
+        efficiencyTipContext: "Le richieste portano un contesto ampio. Svuota la conversazione tra un’attività e l’altra, o compattala, così ogni turno legge meno.",
+        efficiencyTipRebuilds: "Durante le pause la cache è scaduta e tutto il contesto è stato riscritto. Dopo una pausa lunga inizia una nuova conversazione.",
+        efficiencyTipGood: "Contesto e cache ben sfruttati.")
 
     static let ru = NotchAgentStrings(
         title: "ИИ-агенты",
@@ -1077,7 +1159,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Войдите в Codex с тарифом, чтобы видеть сбросы",
         resetsUpdate: "Обновите Codex, чтобы использовать сбросы здесь",
         resetsCheckFailed: "Не удалось проверить сбросы",
-        resetsHelp: "Сброс сразу обновляет лимиты сессии и недели Codex. Codex проверяет ваши сбросы через собственный вход, который Vorssaint никогда не читает.")
+        resetsHelp: "Сброс сразу обновляет лимиты сессии и недели Codex. Codex проверяет ваши сбросы через собственный вход, который Vorssaint никогда не читает.",
+        efficiencyCard: "Эффективность",
+        efficiencyCache: "Попадания в кэш",
+        efficiencyContext: "Ср. контекст",
+        efficiencyRebuilds: "Перестройки кэша",
+        efficiencyHelp: "Оценка от 0 до 100: попадания в кэш (40%), насколько мал контекст каждого запроса (40%) и во что обошлась повторная запись истёкшего кэша (20%).",
+        efficiencyTipCache: "Значительная часть запросов не попала в кэш. Не меняйте начало разговора, чтобы его можно было использовать снова.",
+        efficiencyTipContext: "Запросы несут большой контекст. Очищайте разговор между задачами или сжимайте его, чтобы каждый ход читал меньше.",
+        efficiencyTipRebuilds: "Во время перерывов кэш истекал, и весь контекст записывался заново. После долгого перерыва начинайте новый разговор.",
+        efficiencyTipGood: "Контекст и кэш используются хорошо.")
 
     static let tr = NotchAgentStrings(
         title: "YZ Ajanları",
@@ -1176,7 +1267,16 @@ extension NotchAgentStrings {
         resetsSignIn: "Sıfırlamaları görmek için Codex’te bir planla oturum açın",
         resetsUpdate: "Sıfırlamaları burada kullanmak için Codex’i güncelleyin",
         resetsCheckFailed: "Sıfırlamalar denetlenemedi",
-        resetsHelp: "Bir sıfırlama, Codex’in oturum ve haftalık sınırlarını tek seferde yeniler. Codex sıfırlamalarınızı kendi oturum açma bilgisiyle denetler. Vorssaint bunu hiçbir zaman okumaz.")
+        resetsHelp: "Bir sıfırlama, Codex’in oturum ve haftalık sınırlarını tek seferde yeniler. Codex sıfırlamalarınızı kendi oturum açma bilgisiyle denetler. Vorssaint bunu hiçbir zaman okumaz.",
+        efficiencyCard: "Verimlilik",
+        efficiencyCache: "Önbellek isabeti",
+        efficiencyContext: "Ort. bağlam",
+        efficiencyRebuilds: "Önbellek yenileme",
+        efficiencyHelp: "0-100 arası bir puan: önbellek isabeti (%40), her isteğin bağlamının ne kadar küçük kaldığı (%40) ve süresi dolan önbelleği yeniden yazmanın maliyeti (%20).",
+        efficiencyTipCache: "İsteklerin büyük kısmı önbelleği ıskaladı. Konuşmanın başını değiştirmeyin ki yeniden kullanılabilsin.",
+        efficiencyTipContext: "İstekler büyük bir bağlam taşıyor. Görevler arasında konuşmayı temizleyin ya da sıkıştırın, böylece her adım daha az okur.",
+        efficiencyTipRebuilds: "Molalarda önbelleğin süresi doldu ve tüm bağlam yeniden yazıldı. Uzun bir moladan sonra yeni bir konuşma başlatın.",
+        efficiencyTipGood: "Bağlam ve önbellek iyi kullanılıyor.")
 
     static let ja = NotchAgentStrings(
         title: "AIエージェント",
@@ -1275,7 +1375,16 @@ extension NotchAgentStrings {
         resetsSignIn: "リセットを見るには、プランでCodexにサインインしてください",
         resetsUpdate: "ここでリセットを使うにはCodexをアップデートしてください",
         resetsCheckFailed: "リセットを確認できませんでした",
-        resetsHelp: "リセットを使うと、Codexのセッションと週の上限が同時に回復します。Codexは独自のサインイン情報でリセットを確認し、Vorssaintがそれを読み取ることはありません。")
+        resetsHelp: "リセットを使うと、Codexのセッションと週の上限が同時に回復します。Codexは独自のサインイン情報でリセットを確認し、Vorssaintがそれを読み取ることはありません。",
+        efficiencyCard: "効率",
+        efficiencyCache: "キャッシュヒット",
+        efficiencyContext: "平均コンテキスト",
+        efficiencyRebuilds: "キャッシュ再構築",
+        efficiencyHelp: "0〜100のスコア：キャッシュヒット（40%）、各リクエストのコンテキストの小ささ（40%）、期限切れキャッシュの再書き込みにかかったコスト（20%）。",
+        efficiencyTipCache: "プロンプトの多くがキャッシュを外れました。会話の冒頭を変えずに保つと再利用されます。",
+        efficiencyTipContext: "リクエストが大きなコンテキストを抱えています。タスクの合間に会話をクリアまたは圧縮すると、毎回の読み込みが減ります。",
+        efficiencyTipRebuilds: "休憩中にキャッシュの期限が切れ、コンテキスト全体が再び書き込まれました。長い休憩の後は新しい会話を始めましょう。",
+        efficiencyTipGood: "コンテキストとキャッシュをうまく使えています。")
 
     static let ko = NotchAgentStrings(
         title: "AI 에이전트",
@@ -1374,7 +1483,16 @@ extension NotchAgentStrings {
         resetsSignIn: "초기화를 보려면 플랜으로 Codex에 로그인하세요",
         resetsUpdate: "여기서 초기화를 사용하려면 Codex를 업데이트하세요",
         resetsCheckFailed: "초기화를 확인할 수 없습니다",
-        resetsHelp: "초기화를 사용하면 Codex의 세션 및 주간 한도가 한 번에 갱신됩니다. Codex는 자체 로그인으로 초기화를 확인하며, Vorssaint는 이를 읽지 않습니다.")
+        resetsHelp: "초기화를 사용하면 Codex의 세션 및 주간 한도가 한 번에 갱신됩니다. Codex는 자체 로그인으로 초기화를 확인하며, Vorssaint는 이를 읽지 않습니다.",
+        efficiencyCard: "효율",
+        efficiencyCache: "캐시 적중",
+        efficiencyContext: "평균 컨텍스트",
+        efficiencyRebuilds: "캐시 재구축",
+        efficiencyHelp: "0~100점: 캐시 적중(40%), 요청마다 컨텍스트가 얼마나 작게 유지되는지(40%), 만료된 캐시를 다시 쓰는 데 든 비용(20%).",
+        efficiencyTipCache: "프롬프트의 상당 부분이 캐시를 놓쳤습니다. 대화의 시작 부분을 바꾸지 않으면 재사용됩니다.",
+        efficiencyTipContext: "요청이 큰 컨텍스트를 싣고 있습니다. 작업 사이에 대화를 지우거나 압축하면 매번 읽는 양이 줄어듭니다.",
+        efficiencyTipRebuilds: "쉬는 동안 캐시가 만료되어 전체 컨텍스트를 다시 썼습니다. 오래 쉰 뒤에는 새 대화를 시작하세요.",
+        efficiencyTipGood: "컨텍스트와 캐시를 잘 쓰고 있습니다.")
 
     static let zhHans = NotchAgentStrings(
         title: "AI 智能体",
@@ -1473,7 +1591,16 @@ extension NotchAgentStrings {
         resetsSignIn: "使用套餐登录 Codex 后即可查看重置",
         resetsUpdate: "请更新 Codex 以在此使用重置",
         resetsCheckFailed: "无法检查重置",
-        resetsHelp: "一次重置会同时恢复 Codex 的会话额度和每周额度。Codex 用自己的登录信息检查你的重置，Vorssaint 从不读取这些信息。")
+        resetsHelp: "一次重置会同时恢复 Codex 的会话额度和每周额度。Codex 用自己的登录信息检查你的重置，Vorssaint 从不读取这些信息。",
+        efficiencyCard: "效率",
+        efficiencyCache: "缓存命中",
+        efficiencyContext: "平均上下文",
+        efficiencyRebuilds: "缓存重建",
+        efficiencyHelp: "0–100 分：缓存命中（40%）、每次请求的上下文保持多小（40%），以及重新写入过期缓存的花费（20%）。",
+        efficiencyTipCache: "大部分提示未命中缓存。保持对话开头不变，缓存才能被复用。",
+        efficiencyTipContext: "请求携带的上下文很大。在任务之间清空或压缩对话，每一轮读取的内容就会更少。",
+        efficiencyTipRebuilds: "休息期间缓存过期，整个上下文被重新写入。长时间休息后请开始新的对话。",
+        efficiencyTipGood: "上下文和缓存利用良好。")
 
     static let zhTW = NotchAgentStrings(
         title: "AI 代理",
@@ -1572,7 +1699,16 @@ extension NotchAgentStrings {
         resetsSignIn: "使用方案登入 Codex 後即可查看重設",
         resetsUpdate: "請更新 Codex 以在此使用重設",
         resetsCheckFailed: "無法檢查重設",
-        resetsHelp: "一次重設會同時恢復 Codex 的工作階段額度和每週額度。Codex 用自己的登入資訊檢查你的重設，Vorssaint 從不讀取這些資訊。")
+        resetsHelp: "一次重設會同時恢復 Codex 的工作階段額度和每週額度。Codex 用自己的登入資訊檢查你的重設，Vorssaint 從不讀取這些資訊。",
+        efficiencyCard: "效率",
+        efficiencyCache: "快取命中",
+        efficiencyContext: "平均上下文",
+        efficiencyRebuilds: "快取重建",
+        efficiencyHelp: "0–100 分：快取命中（40%）、每次請求的上下文保持多小（40%），以及重新寫入過期快取的花費（20%）。",
+        efficiencyTipCache: "大部分提示未命中快取。保持對話開頭不變，快取才能被重複使用。",
+        efficiencyTipContext: "請求攜帶的上下文很大。在任務之間清除或壓縮對話，每一輪讀取的內容就會更少。",
+        efficiencyTipRebuilds: "休息期間快取過期，整個上下文被重新寫入。長時間休息後請開始新的對話。",
+        efficiencyTipGood: "上下文和快取運用良好。")
 
     static let zhHK = NotchAgentStrings(
         title: "AI 代理",
@@ -1671,5 +1807,14 @@ extension NotchAgentStrings {
         resetsSignIn: "使用計劃登入 Codex 後即可查看重設",
         resetsUpdate: "請更新 Codex 以在此使用重設",
         resetsCheckFailed: "無法檢查重設",
-        resetsHelp: "一次重設會同時恢復 Codex 的工作階段額度和每週額度。Codex 用自己的登入資料檢查你的重設，Vorssaint 從不讀取這些資料。")
+        resetsHelp: "一次重設會同時恢復 Codex 的工作階段額度和每週額度。Codex 用自己的登入資料檢查你的重設，Vorssaint 從不讀取這些資料。",
+        efficiencyCard: "效率",
+        efficiencyCache: "快取命中",
+        efficiencyContext: "平均上下文",
+        efficiencyRebuilds: "快取重建",
+        efficiencyHelp: "0–100 分：快取命中（40%）、每次請求的上下文保持多細（40%），以及重新寫入過期快取的花費（20%）。",
+        efficiencyTipCache: "大部分提示未命中快取。保持對話開頭不變，快取才能重用。",
+        efficiencyTipContext: "請求帶住好大的上下文。喺任務之間清除或壓縮對話，每一輪讀取的內容就會少啲。",
+        efficiencyTipRebuilds: "休息期間快取過期，成個上下文要重新寫入。長時間休息後請開始新對話。",
+        efficiencyTipGood: "上下文同快取運用良好。")
 }

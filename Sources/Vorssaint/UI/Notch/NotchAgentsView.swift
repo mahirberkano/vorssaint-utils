@@ -135,6 +135,8 @@ struct NotchAgentsView: View {
             NotchAgentActivityCard(snapshot: snapshot, text: text)
         case .resets:
             NotchAgentResetsCard(now: now, text: text, showsDefaultAccount: tile.namesDefaultAccount)
+        case .efficiency:
+            NotchAgentEfficiencyCard(score: AgentEfficiencyScore(snapshot.usage(shown).total), text: text)
         }
     }
 
@@ -881,6 +883,79 @@ private struct NotchAgentActivityCard: View {
 
     private func value(_ totals: AgentTotals, byCost: Bool) -> String {
         byCost ? AgentFormat.cost(totals.cost) : AgentFormat.tokens(totals.tokens.total)
+    }
+}
+
+// MARK: Efficiency
+
+/// A score for the chosen period, the three parts behind it and, in the
+/// tooltip, what would raise the weakest one.
+private struct NotchAgentEfficiencyCard: View {
+    let score: AgentEfficiencyScore?
+    let text: NotchAgentStrings
+
+    var body: some View {
+        NotchAgentCardChrome {
+            VStack(alignment: .leading, spacing: 6) {
+                NotchAgentCardHeader(title: text.efficiencyCard, symbol: NotchAgentCard.efficiency.symbol) {
+                    if let score { NotchAgentChip(text: "\(score.overall)", tint: tint(Double(score.overall) / 100)) }
+                }
+                if let score {
+                    VStack(spacing: 5) {
+                        row(.cache, score: score, value: score.hitRate.map { AgentFormat.percent($0) } ?? "–")
+                        row(.context, score: score, value: AgentFormat.tokens(score.averageContext))
+                        row(.rebuilds, score: score, value: AgentFormat.cost(score.rebuildCost))
+                    }
+                } else {
+                    Text(text.noActivity).font(.system(size: 10.5)).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .help(score.map { text.efficiencyHelp + "\n\n" + tip($0) } ?? text.efficiencyHelp)
+    }
+
+    private func row(_ part: AgentEfficiencyScore.Part, score: AgentEfficiencyScore, value: String) -> some View {
+        let fraction = score.parts[part]
+        return HStack(spacing: 6) {
+            Text(label(part))
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(part == score.weakest ? Color.orange : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Capsule(style: .continuous)
+                .fill(tint(fraction ?? 0).opacity(fraction == nil ? 0.2 : 0.85))
+                .frame(width: max(3, 44 * (fraction ?? 0)), height: 4)
+                .frame(width: 44, alignment: .leading)
+            Text(value)
+                .font(.system(size: 10, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(minWidth: 40, alignment: .trailing)
+        }
+        .frame(height: 14)
+    }
+
+    private func label(_ part: AgentEfficiencyScore.Part) -> String {
+        switch part {
+        case .cache: return text.efficiencyCache
+        case .context: return text.efficiencyContext
+        case .rebuilds: return text.efficiencyRebuilds
+        }
+    }
+
+    private func tip(_ score: AgentEfficiencyScore) -> String {
+        switch score.weakest {
+        case .cache?: return text.efficiencyTipCache
+        case .context?: return text.efficiencyTipContext
+        case .rebuilds?: return text.efficiencyTipRebuilds
+        case nil: return text.efficiencyTipGood
+        }
+    }
+
+    private func tint(_ fraction: Double) -> Color {
+        fraction >= 0.8 ? .green : fraction >= 0.6 ? .yellow : .orange
     }
 }
 

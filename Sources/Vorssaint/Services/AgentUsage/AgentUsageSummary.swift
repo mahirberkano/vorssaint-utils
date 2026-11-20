@@ -23,12 +23,14 @@ struct AgentTotals: Equatable {
     var requests = 0
     /// Responses from a model without a known price, left out of `cost`.
     var unpriced = 0
+    var efficiency = AgentEfficiency()
 
     mutating func add(_ record: AgentUsageRecord) {
         tokens += record.tokens
         requests += max(0, record.requests)
         savings += record.savings
         if let price = record.cost { cost += price } else { unpriced += 1 }
+        efficiency += AgentEfficiency(record)
     }
 
     static func += (lhs: inout AgentTotals, rhs: AgentTotals) {
@@ -37,6 +39,7 @@ struct AgentTotals: Equatable {
         lhs.savings += rhs.savings
         lhs.requests += rhs.requests
         lhs.unpriced += rhs.unpriced
+        lhs.efficiency += rhs.efficiency
     }
 
     /// Cost when every response had a price, tokens otherwise, so shares
@@ -376,6 +379,7 @@ final class AgentUsageSummaryCache {
             delta.savings -= previous.savings
             delta.requests -= previous.requests
             delta.unpriced -= previous.cost == nil ? 1 : 0
+            delta.efficiency -= AgentEfficiency(previous)
         }
         history!.days[day].byProvider[record.provider, default: AgentTotals()] += delta
         if day == starts.count - 1, let hour = AgentUsageSummary.index(of: record.date, in: hourStarts) {
@@ -394,6 +398,122 @@ final class AgentUsageSummaryCache {
                     id: record.project, name: record.project, provider: nil, totals: AgentTotals())].totals += delta
             }
         }
+    }
+}
+
+/// How carefully context was spent: how large each request's prompt was, and
+/// what cache had to be written again after it expired. Every field is a sum,
+/// so a streamed response's correction is a plain difference.
+struct AgentEfficiency: Equatable {
+    /// Upper bounds of the prompt sizes counted apart; the last band holds
+    /// everything above the final bound.
+    static let bands = [100_000, 200_000, 400_000, 600_000]
+    /// A fresh session or a subagent starts well below this. A prompt this
+    /// large that still mostly missed the cache found its earlier one expired.
+    static let rebuildFloor = 100_000
+
+    /// Requests by prompt size: under 100K, 200K, 400K, 600K, and above.
+    var lean = 0, moderate = 0, large = 0, heavy = 0, huge = 0
+    /// Requests that wrote an expired context to the cache again.
+    var rebuilds = 0
+    /// What those writes cost beyond reading the same tokens from the cache.
+    var rebuildCost = 0.0
+
+    var requests: Int { lean + moderate + large + heavy + huge }
+
+    init() {}
+
+    init(_ record: AgentUsageRecord) {
+        let count = max(0, record.requests)
+        guard count > 0 else { return }
+        let prompt = record.tokens.prompt / count
+        switch prompt {
+        case ..<Self.bands[0]: lean = count
+        case ..<Self.bands[1]: moderate = count
+        case ..<Self.bands[2]: large = count
+        case ..<Self.bands[3]: heavy = count
+        default: huge = count
+        }
+        // Providers that bill no cache writes never record one, so only
+        // a write can mark a rebuild.
+        guard prompt >= Self.rebuildFloor, record.tokens.cacheWrite > 0,
+              record.tokens.cacheRead * 2 < record.tokens.prompt else { return }
+        rebuilds = count
+        if let price = AgentPricing.price(for: record.model) {
+            rebuildCost = Double(record.tokens.cacheWrite) * max(0, price.cacheWrite - price.cacheRead) / 1_000_000
+        }
+    }
+
+    static func += (lhs: inout AgentEfficiency, rhs: AgentEfficiency) {
+        lhs.lean += rhs.lean
+        lhs.moderate += rhs.moderate
+        lhs.large += rhs.large
+        lhs.heavy += rhs.heavy
+        lhs.huge += rhs.huge
+        lhs.rebuilds += rhs.rebuilds
+        lhs.rebuildCost += rhs.rebuildCost
+    }
+
+    static func -= (lhs: inout AgentEfficiency, rhs: AgentEfficiency) {
+        lhs.lean -= rhs.lean
+        lhs.moderate -= rhs.moderate
+        lhs.large -= rhs.large
+        lhs.heavy -= rhs.heavy
+        lhs.huge -= rhs.huge
+        lhs.rebuilds -= rhs.rebuilds
+        lhs.rebuildCost -= rhs.rebuildCost
+    }
+}
+
+/// A 0-100 reading of how well a period used the cache and kept its context
+/// small. Each part is a fraction from 0 to 1.
+struct AgentEfficiencyScore: Equatable {
+    enum Part: CaseIterable { case cache, context, rebuilds }
+
+    static let weights: [Part: Double] = [.cache: 0.4, .context: 0.4, .rebuilds: 0.2]
+    /// Below this hit rate the cache earns nothing; at the top it earns all.
+    static let cacheRange = 0.5...0.95
+    /// What each prompt-size band is worth, smallest first.
+    static let bandValues = [1.0, 0.8, 0.5, 0.2, 0.0]
+    /// The share of spending lost to rebuilds at which that part reaches zero.
+    static let rebuildCeiling = 0.15
+
+    let overall: Int
+    let parts: [Part: Double]
+    /// Only shown, never scored: `parts` holds what counts.
+    let hitRate: Double?
+    let averageContext: Int
+    let rebuildCost: Double
+
+    /// The part with the most to gain, when one falls short.
+    var weakest: Part? {
+        guard let part = Part.allCases.filter({ parts[$0] != nil }).min(by: { parts[$0]! < parts[$1]! }),
+              parts[part]! < 0.8 else { return nil }
+        return part
+    }
+
+    /// Nil until the period has a request to read. A provider that reports
+    /// no cache traffic is scored on the other parts alone.
+    init?(_ totals: AgentTotals) {
+        let efficiency = totals.efficiency
+        guard efficiency.requests > 0 else { return nil }
+        var parts: [Part: Double] = [:]
+        let hit = totals.tokens.cacheRead + totals.tokens.cacheWrite > 0 ? totals.tokens.cacheHitRate : nil
+        if let hit {
+            let range = Self.cacheRange
+            parts[.cache] = min(1, max(0, (hit - range.lowerBound) / (range.upperBound - range.lowerBound)))
+        }
+        let counts = [efficiency.lean, efficiency.moderate, efficiency.large, efficiency.heavy, efficiency.huge]
+        parts[.context] = zip(counts, Self.bandValues).reduce(0) { $0 + Double($1.0) * $1.1 } / Double(efficiency.requests)
+        let lost = totals.cost > 0 ? efficiency.rebuildCost / totals.cost : 0
+        parts[.rebuilds] = min(1, max(0, 1 - lost / Self.rebuildCeiling))
+        let weight = parts.keys.reduce(0) { $0 + Self.weights[$1]! }
+        let sum = parts.reduce(0) { $0 + $1.value * Self.weights[$1.key]! }
+        overall = Int((sum / weight * 100).rounded())
+        self.parts = parts
+        hitRate = hit
+        averageContext = totals.requests > 0 ? totals.tokens.prompt / totals.requests : 0
+        rebuildCost = max(0, efficiency.rebuildCost)
     }
 }
 

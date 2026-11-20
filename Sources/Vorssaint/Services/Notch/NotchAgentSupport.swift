@@ -7,7 +7,7 @@ import Foundation
 /// The cards the AI page can show, in the order a person arranges them. Raw
 /// values are stored in the saved order, so cases are never renamed.
 enum NotchAgentCard: String, CaseIterable, Identifiable {
-    case limits, spend, live, trend, models, projects, activity, resets
+    case limits, spend, live, trend, models, projects, activity, resets, efficiency
 
     var id: String { rawValue }
 
@@ -21,6 +21,7 @@ enum NotchAgentCard: String, CaseIterable, Identifiable {
         case .projects: return "folder"
         case .activity: return "square.grid.3x3.fill"
         case .resets: return "arrow.counterclockwise.circle"
+        case .efficiency: return "leaf"
         }
     }
 
@@ -28,7 +29,9 @@ enum NotchAgentCard: String, CaseIterable, Identifiable {
     var fullWidth: Bool { self == .trend || self == .activity }
 
     /// Cards that cover the period chosen in the island's top row.
-    var followsPeriod: Bool { self == .spend || self == .trend || self == .models || self == .projects }
+    var followsPeriod: Bool {
+        self == .spend || self == .trend || self == .models || self == .projects || self == .efficiency
+    }
 }
 
 /// What the closed island shows beside the camera while an agent works.
